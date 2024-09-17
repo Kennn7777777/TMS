@@ -26,12 +26,13 @@ export const load = async ({ url, depends }) => {
 	depends('app:rootlayout');
 
 	if (!(url.pathname === '/login')) {
+		console.log('RUN LAYOUT WHEN NOT LOGIN');
 		try {
 			const response = await api.get('/users/getUser');
 
 			if (response.data.success) {
 				const userGroups = response.data.data.group_names?.split(', ');
-				// console.log(response.data.data.username);
+
 				if (url.pathname === '/admin' && !userGroups.includes('admin')) {
 					await goto('/');
 				}

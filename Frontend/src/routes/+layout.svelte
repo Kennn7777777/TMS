@@ -12,17 +12,12 @@
 	$: currUser = data.userData;
 	$: isAdmin = currUser?.group_names?.includes('admin');
 
-	// $: {
-	// 	console.log('==== ' + isAdmin);
-	// }
-
 	$: {
 		showNavbar = !($page.url.pathname === '/login');
-		// console.log(user);
 
 		switch ($page.url.pathname) {
 			case '/':
-				title = 'Home';
+				title = 'App List';
 				break;
 			case '/admin':
 				title = 'User Management';
@@ -50,7 +45,7 @@
 
 <main class="h-full">
 	{#if showNavbar}
-		<nav class="bg-gray-400 sticky top-0 w-full z-50">
+		<nav class="bg-gray-400 sticky top-0 w-full z-[99]">
 			<div class="mx-auto max-w-[90rem] px-2">
 				<div class="relative flex h-16 items-center justify-between">
 					<div class="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
@@ -93,6 +88,7 @@
 								</div>
 							</div>
 
+							<!-- Menu -->
 							<div
 								class="invisible absolute mt-2 right-0 z-[99] flex flex-col bg-gray-100 px-4 py-1 text-gray-800 shadow-xl group-hover:visible"
 							>
@@ -103,6 +99,13 @@
 									View/Edit Profile
 								</a>
 
+								<a
+								href="/"
+								class="my-2 block border-b border-gray-100 py-1 font-semibold text-gray-500 hover:text-black md:mx-2"
+							>
+								View Apps
+							</a>
+
 								{#if isAdmin}
 									<a
 										href="/admin"
@@ -112,12 +115,12 @@
 									</a>
 								{/if}
 
-								<a
+								<button
 									on:click={handleLogout}
-									class="my-2 block border-b border-gray-100 py-1 font-semibold text-gray-500 hover:text-black md:mx-2"
+									class="my-2 text-left block border-b border-gray-100 py-1 font-semibold text-gray-500 hover:text-black md:mx-2"
 								>
 									Logout
-								</a>
+								</button>
 							</div>
 						</div>
 					</div>
@@ -128,6 +131,7 @@
 
 	<slot />
 
+	<!-- Notification message -->
 	<ToastContainer placement="bottom-left" let:data>
 		<FlatToast {data} />
 	</ToastContainer>

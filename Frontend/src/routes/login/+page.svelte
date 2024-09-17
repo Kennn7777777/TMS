@@ -78,11 +78,6 @@
 	</div>
 </div>
 
-<!-- 
-.asd {
-	@apply text-3xl;
-} -->
-
 <style lang="postcss">
 	/* :global(html) {
 		background-color: theme(colors.gray.100);

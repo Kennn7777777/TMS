@@ -12,7 +12,7 @@
 	// entire group list
 	$: groups = data.groups;
 
-	// single user
+	// editing a single user
 	let editingUser = null;
 	let password = '';
 	let email = null;
@@ -24,7 +24,7 @@
 	let showGroupModal = false;
 	let groupName = '';
 
-	// creating user
+	// creating user fields
 	let newUsername = '';
 	let newPassword = '';
 	let newEmail = null;
@@ -35,9 +35,9 @@
 
 	const showToast = (success, messageDesc) => {
 		if (success) {
-			toasts.success('', messageDesc, { duration: 4000, theme: 'light' });
+			toasts.success('', messageDesc, { duration: 3000, theme: 'light' });
 		} else {
-			toasts.error('', messageDesc, { duration: 4000, theme: 'light' });
+			toasts.error('', messageDesc, { duration: 3000, theme: 'light' });
 		}
 	};
 
@@ -58,11 +58,9 @@
 		userErrors = {};
 		editingUser = user;
 
-		// password = user.password;
 		email = user.email;
 		active = user.active === 1 ? 'Yes' : 'No';
 		selectedGroups = user.group_ids?.split(', ').map(Number);
-		// console.log(selectedGroups);
 	};
 
 	const handleSaveEdit = async (user) => {
@@ -71,7 +69,7 @@
 				username: user.username,
 				password: password,
 				email: email,
-				active: active === 'Yes' ? '1' : '0',
+				active: active === 'Yes' ? 1 : 0,
 				groups: selectedGroups.join(', ')
 			};
 
@@ -85,13 +83,14 @@
 				invalidate('app:admin');
 			}
 		} catch (error) {
-			if (error.response.data.code === 'ERR_AUTH' || error.response.data.code === 'ERR_ADMIN') {
+			const message = error.response?.data?.message || 'An unexpected error occurred';
+			
+			if (error.response?.data?.code  === 'ERR_AUTH' || error.response?.data?.code  === 'ERR_ADMIN') {
 				await logOut();
-				showToast(false, error.response.data.message);
+				showToast(false, message);
 			} else {
-				userErrors = error.response.data.errors;
-
-				showToast(false, `Unable to edit User! ` + userErrors.password);
+				userErrors = error.response?.data?.errors || {};
+				showToast(false, message);
 			}
 		}
 	};
@@ -121,13 +120,14 @@
 				invalidate('app:admin');
 			}
 		} catch (error) {
-			if (error.response.data.code === 'ERR_ADMIN' || error.response.data.code === 'ERR_AUTH') {
+			const message = error.response?.data?.message || 'An unexpected error occurred';
+
+			if (error.response?.data?.code === 'ERR_ADMIN' || error.response?.data?.code === 'ERR_AUTH') {
 				showGroupModal = false;
 				await logOut();
-				showToast(false, error.response.data.message);
+				showToast(false, message);
 			} else {
-				errors = error.response.data.errors;
-				showToast(false, 'Unable to create Group!');
+				errors = error.response?.data?.errors || {};
 			}
 		}
 	};
@@ -138,7 +138,7 @@
 				username: newUsername,
 				password: newPassword,
 				email: newEmail,
-				active: newActive === 'Yes' ? '1' : '0',
+				active: newActive === 'Yes' ? 1 : 0,
 				groups: newSelectedGroups.join(', ')
 			};
 
@@ -148,16 +148,17 @@
 				showToast(true, response.data.message);
 				resetNewUserField();
 				invalidate('app:admin');
-			} else {
 			}
 		} catch (error) {
-			if (error.response.data.code === 'ERR_ADMIN' || error.response.data.code === 'ERR_AUTH') {
+			const message = error.response?.data?.message || 'An unexpected error occurred';
+				
+			if (error.response?.data?.code === 'ERR_ADMIN' || error.response?.data?.code === 'ERR_AUTH') {
 				showGroupModal = false;
 				await logOut();
-				showToast(false, error.response.data.message);
+				showToast(false, message);
 			} else {
-				errors = error.response.data.errors;
-				showToast(false, 'Unable to create User!');
+				errors = error.response?.data?.errors || {};
+				showToast(false, message);
 			}
 		}
 	};
@@ -175,7 +176,7 @@
 
 <div class="w-full relative">
 	<div class="mx-auto max-w-[90rem]">
-		<div class="flex flex-col mt-10">
+		<div class="flex flex-col mt-1">
 			<div class="flex justify-end">
 				<div class="ml-14">
 					<button
@@ -190,9 +191,9 @@
 			</div>
 
 			<!-- User table -->
-			<div class="max-h-[400px] overflow-y-auto custom-scrollbar">
-				<table class="min-w-[90rem] divide-y divide-gray-200">
-					<thead class="bg-gray-50 sticky z-1 top-0">
+			<div class="custom-scrollbar h-[340px] lg:overflow-x-hidden overflow-x-auto md:overflow-x-auto"> <!--overflow-y-auto max-h-[400px] overflow-x-auto-->
+				<table class="min-w-[90rem] divide-y divide-gray-200 relative">
+					<thead class="bg-gray-50 sticky z-50 top-0">
 						<tr>
 							<th
 								scope="col"
@@ -232,46 +233,72 @@
 							</th>
 						</tr>
 					</thead>
-					<tbody class="bg-white divide-y divide-gray-200">
+					<tbody class="bg-white divide-y divide-gray-200 relative">
 						{#each users as user (user.username)}
 							<tr>
+								<!-- username -->
 								<td class="px-6 py-4 whitespace-nowrap">
 									<div class="text-sm font-medium text-gray-900">{user.username}</div>
 								</td>
-								<td class="px-6 py-4 relative">
+
+								<!-- password input field -->
+								<td class="px-6 py-4">
 									{#if editingUser === user}
 										<input
+											on:input={ () => {
+												if (userErrors.hasOwnProperty('password')) {
+													delete userErrors.password;
+												}
+											}}
 											id="password"
 											name="password"
 											bind:value={password}
+											type="password"
 											placeholder="Enter new password..."
 											class="block w-full px-2 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
 										/>
-										<!-- {#if userErrors.password}
-										<div
-											class="absolute bottom-[-1] text-sm text-red-500 whitespace-normal break-words"
+										{#if userErrors.password}
+											<div
+											class="text-sm text-red-500 whitespace-normal break-words"
 										>
 											{userErrors.password}
-										</div>
-									{/if} -->
+											</div>
+										{/if}
 									{:else}
 										<div class="text-sm text-gray-900">••••••••••</div>
+										
+										
 									{/if}
 								</td>
+
+								<!-- email input field -->
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 									{#if editingUser === user}
 										<input
+											on:input={ () => {
+												if (userErrors.hasOwnProperty('email')) {
+													delete userErrors.email;
+												}
+											}}
 											id="email"
 											name="email"
 											bind:value={email}
 											placeholder="Enter new email..."
 											class="block w-full px-2 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
 										/>
+										{#if userErrors.email}
+											<div
+											class="text-sm text-red-500 whitespace-normal break-words"
+										>
+											{userErrors.email}
+											</div>
+										{/if}
 									{:else}
 										{user.email || '-'}
 									{/if}
 								</td>
-
+								
+								<!-- active dropdown selection -->
 								<td class="px-6 py-4 whitespace-nowrap">
 									{#if editingUser === user}
 										<select
@@ -293,7 +320,9 @@
 										</span>
 									{/if}
 								</td>
-								<td class="px-6 py-4 text-sm text-gray-500">
+
+								<!-- group dropdown selection -->
+								<td class="px-6 py-4 text-sm text-gray-500 relative">
 									{#if editingUser === user}
 										<MultiSelectDropdown
 											label="Select Groups"
@@ -305,6 +334,7 @@
 									{/if}
 								</td>
 
+								<!-- actions button (edit/cancel/save) -->
 								<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
 									{#if editingUser === user}
 										<button on:click={handleCancelEdit}>Cancel</button>
@@ -313,10 +343,12 @@
 											on:click={() => handleSaveEdit(user)}>Save</button
 										>
 									{:else}
+										{#if user.username !== "admin"}
 										<button
 											class="text-indigo-600 hover:text-indigo-900"
 											on:click={() => handleStartEdit(user)}>Edit</button
 										>
+										{/if}
 									{/if}
 								</td>
 							</tr>
@@ -325,99 +357,112 @@
 				</table>
 			</div>
 
-			<!-- Create new User -->
-
-			<table class="min-w-[90rem]">
-				<thead>
-					<tr>
-						<th scope="col" class="w-2/12 px-6"> </th>
-						<th scope="col" class="w-2/12 px-6"> </th>
-						<th scope="col" class="w-2/12 px-6"> </th>
-						<th scope="col" class="w-1/12 px-6"> </th>
-						<th scope="col" class="w-3/12 px-6"> </th>
-						<th scope="col" class="w-2/12 px-6"> </th>
-					</tr>
-				</thead>
-				<tbody class="bg-white divide-y">
-					<tr>
-						<td class="px-6 py-4 whitespace-nowrap relative">
-							<input
-								on:input={() => {
-									errors = {};
+			<!-- Create new User Table--> 
+			<div class="custom-scrollbar mt-2 overflow-x-auto static"> <!-- lg:overflow-x-hidden overflow-x-auto md:overflow-x-auto-->
+				<div class="font-bold text-xm ml-5">Create New User</div>
+				<table class="min-w-[90rem] relative ">
+					<thead>
+						<tr>
+							<th scope="col" class="w-2/12 px-6"> </th>
+							<th scope="col" class="w-2/12 px-6"> </th>
+							<th scope="col" class="w-2/12 px-6"> </th>
+							<th scope="col" class="w-1/12 px-6"> </th>
+							<th scope="col" class="w-3/12 px-6"> </th>
+							<th scope="col" class="w-2/12 px-6"> </th>
+						</tr>
+					</thead>
+					<tbody class="bg-white divide-y">
+						<tr>
+							<td class="px-6 py-4 whitespace-nowrap relative">
+								<input
+								on:input={ () => {
+									if (errors.hasOwnProperty('username')) {
+										delete errors.username;
+									}
 								}}
-								bind:value={newUsername}
-								name="NewUsername"
-								placeholder="Enter new username..."
-								class="block w-full px-2 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-							/>
-							{#if errors.username}
-								<div class="absolute bottom-[-1] text-sm text-red-500">
-									{errors.username}
-								</div>
-							{/if}
-						</td>
-						<td class="px-6 py-4 relative">
-							<input
-								bind:value={newPassword}
-								on:input={() => {
-									errors = {};
-								}}
-								name="NewPassword"
-								type="password"
-								placeholder="Enter new password..."
-								class="block w-full px-2 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-							/>
-							{#if errors.password}
-								<div
-									class="absolute bottom-[-1] text-sm text-red-500 whitespace-normal break-words"
+									bind:value={newUsername}
+									name="NewUsername"
+									placeholder="Enter new username..."
+									class="block w-full px-2 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+								/>
+								{#if errors.username}
+									<div class="absolute bottom-[-1] text-sm text-red-500">
+										{errors.username}
+									</div>
+								{/if}
+							</td>
+							<td class="px-6 py-4 relative">
+								<input
+									bind:value={newPassword}
+									on:input={ () => {
+										if (errors.hasOwnProperty('password')) {
+											delete errors.password;
+										}
+									}}
+									name="NewPassword"
+									type="password"
+									placeholder="Enter new password..."
+									class="block w-full px-2 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+								/>
+								{#if errors.password}
+									<div
+										class="absolute bottom-[-1] text-sm text-red-500 whitespace-normal break-words"
+									>
+										{errors.password}
+									</div>
+								{/if}
+							</td>
+							<td class="px-6 py-4 whitespace-nowrap">
+								<input
+									bind:value={newEmail}
+									name="newEmail"
+									placeholder="Enter new email..."
+									class="block w-full px-2 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+								/>
+								{#if errors.email}
+									<div
+										class="absolute bottom-[-1] text-sm text-red-500 whitespace-normal break-words"
+									>
+										{errors.email}
+									</div>
+								{/if}
+							</td>
+							<td class="px-6 py-4 whitespace-nowrap">
+								<select
+									bind:value={newActive}
+									class="block w-full px-2 py-1.5 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+									name="active"
 								>
-									{errors.password}
-								</div>
-							{/if}
-						</td>
-						<td class="px-6 py-4 whitespace-nowrap">
-							<input
-								bind:value={newEmail}
-								name="newEmail"
-								placeholder="Enter new email..."
-								class="block w-full px-2 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-							/>
-						</td>
-						<td class="px-6 py-4 whitespace-nowrap">
-							<select
-								bind:value={newActive}
-								class="block w-full px-2 py-1.5 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-								name="active"
-							>
-								<option value="Yes">Yes</option>
-								<option value="No">No</option>
-							</select>
-						</td>
-						<td class="px-6 py-4">
-							<MultiSelectDropdown
-								label="Select Groups"
-								items={groups}
-								bind:isOpen={newIsOpen}
-								bind:selectedItems={newSelectedGroups}
-							/>
-						</td>
-						<td class="px-2 py-4 whitespace-nowrap flex justify-end">
-							<button
-								on:click={handleCreateUser}
-								class="px-4 py-2 text-base font-semibold text-white bg-primary rounded-lg shadow-md"
-							>
-								Create User
-							</button>
-						</td>
-					</tr>
-				</tbody>
-			</table>
+									<option value="Yes">Yes</option>
+									<option value="No">No</option>
+								</select>
+							</td>
+							<td class="px-6 py-4 relative">
+								<MultiSelectDropdown
+									label="Select Groups"
+									items={groups}
+									bind:isOpen={newIsOpen}
+									bind:selectedItems={newSelectedGroups}
+								/>
+							</td>
+							<td class="px-2 py-4 flex justify-end">
+								<button
+									on:click={handleCreateUser}
+									class="px-4 py-2 text-base font-semibold text-white bg-primary rounded-lg shadow-md"
+								>
+									Create User
+								</button>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
 		</div>
 	</div>
 
 	{#if showGroupModal}
 		<div
-			class="fixed inset-0 z-[99] w-full h-screen overflow-y-auto flex items-center justify-center"
+			class="fixed inset-0 z-[50] w-full h-screen overflow-y-auto flex items-center justify-center"
 		>
 			<div class="absolute inset-0 w-full h-full bg-gray-500 opacity-75 -z-[99]"></div>
 
@@ -475,6 +520,7 @@
 
 <style>
 	.custom-scrollbar::-webkit-scrollbar {
+		height: 10px;
 		width: 6px;
 	}
 	.custom-scrollbar::-webkit-scrollbar-thumb {
@@ -484,4 +530,6 @@
 	.custom-scrollbar::-webkit-scrollbar-track {
 		background: #f1f1f1;
 	}
+
+
 </style>

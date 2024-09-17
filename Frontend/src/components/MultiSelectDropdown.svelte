@@ -48,7 +48,7 @@
 
 	<!-- Dropdown menu -->
 	{#if isOpen}
-		<div class="absolute w-44 bg-white border z-10">
+		<div class="absolute w-44 bg-white border z-[50]">
 			<div class="p-2 max-h-40 overflow-y-auto">
 				{#each items as item}
 					<label class="flex items-center py-1">

@@ -1,5 +1,10 @@
 const db = require("../config/db");
 
+const groupRegex = /^[\w]+$/;
+const validateGroup = (group) => {
+  return groupRegex.test(group);
+};
+
 module.exports = {
   createGroup: async (req, res) => {
     const { groupName } = req.body;
@@ -10,6 +15,17 @@ module.exports = {
         errors: {
           group: "Group name is required",
         },
+        message: "Unable to create group",
+      });
+    }
+
+    if (!validateGroup(groupName)) {
+      return res.status(400).json({
+        success: false,
+        errors: {
+          group: "Invalid group name",
+        },
+        message: "Unable to create group",
       });
     }
 
@@ -26,6 +42,7 @@ module.exports = {
           errors: {
             group: "Group name already exists",
           },
+          message: "Unable to create group",
         });
       }
 

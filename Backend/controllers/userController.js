@@ -1,6 +1,6 @@
 const db = require("../config/db");
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
+// const jwt = require("jsonwebtoken");
 
 const saltRounds = 10;
 // ^              - asserts start of string
@@ -11,46 +11,54 @@ const saltRounds = 10;
 // $              - asserts end of string
 
 const regex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_]).{8,10}$/;
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const userRegex = /^[a-zA-Z0-9]+$/;
+
 const validatePassword = (password) => {
   return regex.test(password);
 };
 
+const validateEmail = (email) => {
+  return emailRegex.test(email);
+};
+
+const validateUsername = (username) => {
+  return userRegex.test(username);
+};
+
 module.exports = {
+  // Create a single user [Admin]
   createUser: async (req, res) => {
     const { username, password, email, active, groups } = req.body; // groups = "1, 2, 3"
     let errors = {};
-    // checked groups convert string into array of int
-    let assignedGroup;
 
     if (!username) {
       errors.username = "Username is required";
+    } else if (!validateUsername(username)) {
+      errors.username = "Invalid Username format";
     }
 
+    // check for password length >= 8 & <=10, alphanumeric
     if (!password) {
       errors.password = "Password is required";
+    } else if (!validatePassword(password)) {
+      errors.password = "Password does not meet the required criteria.";
+    }
+
+    if (email && !validateEmail(email)) {
+      errors.email = "Invalid email format";
     }
 
     if (Object.keys(errors).length > 0) {
       return res.status(400).json({
         success: false,
         errors: errors,
-      });
-    }
-
-    // check for password length >= 8 & <=10, alphanumeric
-    if (!validatePassword(password)) {
-      return res.status(400).json({
-        success: false,
-        errors: {
-          password: "Password does not meet the required criteria.",
-        },
+        message: "Unable to create user!",
       });
     }
 
     if (active) {
-      const activeInt = parseInt(active);
-
-      if (!Number.isInteger(activeInt) || activeInt < 0 || activeInt > 1) {
+      if (typeof active !== "number" || active < 0 || active > 1) {
         return res.status(400).json({
           success: false,
           message: "Active should be numeric and be 0 or 1.",
@@ -58,20 +66,37 @@ module.exports = {
       }
     }
 
+    let assignedGroup;
     if (groups) {
       assignedGroup = groups.split(", ").map(Number);
       if (!Array.isArray(assignedGroup)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid group field",
+          message: "Invalid group format",
         });
       }
     }
 
     try {
+      // check if username exists
+      const [result] = await db.query(
+        "SELECT username FROM user WHERE username = ?",
+        [username]
+      );
+
+      if (result.length > 0) {
+        return res.status(400).json({
+          success: false,
+          errors: {
+            username: "Username taken",
+          },
+          message: "Username already exists",
+        });
+      }
+
       const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-      await db.execute(
+      await db.query(
         "INSERT INTO user (username, password, email, active) VALUES (?, ?, ?, ?)",
         [
           username,
@@ -87,22 +112,15 @@ module.exports = {
           groupsToInsert,
         ]);
       }
-
       return res
         .status(201)
         .json({ success: true, message: "New user created successfully." });
     } catch (error) {
-      if (error.code === "ER_DUP_ENTRY") {
-        return res
-          .status(409)
-          .json({ success: false, message: "Username already exist." });
-      }
-
       return res.status(500).json({ success: false, message: error.message });
     }
   },
 
-  // Retrieve all user information (username, email, active, group_names)
+  // Retrieve all users information (username, email, active, group_names) [Admin]
   getAllUsers: async (req, res) => {
     try {
       const [result] = await db.query(`
@@ -128,9 +146,9 @@ module.exports = {
     }
   },
 
+  // Retrieve existing user information
   getUser: async (req, res) => {
     // const { username } = req.body;
-
     username = req.username;
 
     if (!username) {
@@ -138,11 +156,6 @@ module.exports = {
     }
 
     try {
-      // const [result] = await db.execute(
-      //   "SELECT username, email, active FROM user WHERE username = ?",
-      //   [username]
-      // );
-
       const [result] = await db.query(
         `
         SELECT u.username, u.email, u.active,
@@ -184,22 +197,26 @@ module.exports = {
 
     if (!password) {
       errors.password = "Password is required";
-      return res.status(400).json({ success: false, errors });
+      return res.status(400).json({
+        success: false,
+        errors,
+        message: "Unable to change password!",
+      });
     }
 
     if (!validatePassword(password)) {
       errors.password = "Password does not meet the required criteria.";
-      return res.status(400).json({ success: false, errors });
+      return res.status(400).json({
+        success: false,
+        errors,
+        message: "Unable to change password!",
+      });
     }
-
-    // if (Object.keys(errors).length > 0) {
-    //   return res.status(400).json({ success: false, errors });
-    // }
 
     try {
       const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-      const [result] = await db.execute(
+      const [result] = await db.query(
         `UPDATE user SET password = ? WHERE username = ?`,
         [hashedPassword, username]
       );
@@ -213,13 +230,14 @@ module.exports = {
       res
         .status(200)
         .json({ success: true, message: "Password updated successfully!" });
-    } catch (err) {
-      res.status(500).json({ success: false, error: err.message });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
     }
   },
 
   updateEmail: async (req, res) => {
     const { username, email } = req.body;
+    const errors = {};
 
     if (!username) {
       return res
@@ -227,8 +245,17 @@ module.exports = {
         .json({ success: false, message: "Username is required" });
     }
 
+    if (email && !validateEmail(email)) {
+      errors.email = "Invalid email format";
+      return res.status(400).json({
+        success: false,
+        errors,
+        message: "Unable to update email!",
+      });
+    }
+
     try {
-      const [result] = await db.execute(
+      const [result] = await db.query(
         `UPDATE user SET email = ? WHERE username = ?`,
         [email || null, username]
       );
@@ -282,8 +309,6 @@ module.exports = {
   updateAll: async (req, res) => {
     const { username, password, email, active, groups } = req.body;
     const errors = {};
-    // checked groups convert string into array of int
-    let assignedGroup;
 
     if (!username) {
       return res
@@ -295,35 +320,61 @@ module.exports = {
       errors.password = "Password does not meet the required criteria.";
     }
 
-    if (Object.keys(errors).length > 0) {
-      return res.status(400).json({ success: false, errors });
+    if (email && !validateEmail(email)) {
+      errors.email = "Invalid email format";
     }
 
-    if (active !== undefined) {
-      const activeInt = parseInt(active);
-      if (!Number.isInteger(activeInt) || activeInt < 0 || activeInt > 1) {
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        success: false,
+        errors: errors,
+        message: "Unable to create user!",
+      });
+    }
+
+    if (active) {
+      if (typeof active !== "number" || active < 0 || active > 1) {
         return res.status(400).json({
           success: false,
-          message: "Active should be numeric and be 0 or 1",
+          message: "Active should be numeric and be 0 or 1.",
         });
       }
     }
 
+    // checked groups is able to convert string into array of int
+    let assignedGroup;
     if (groups) {
       assignedGroup = groups.split(", ").map(Number);
-
       if (!Array.isArray(assignedGroup)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid group field",
+          message: "Invalid group format",
         });
       }
     }
 
     try {
-      //TODO: begin transcation here
+      // check if username exists
+      const [user] = await db.query(
+        "SELECT username FROM user WHERE username = ?",
+        [username]
+      );
+
+      if (user.length === 0) {
+        return res.status(400).json({
+          success: false,
+          errors: {
+            username: "Username is not valid",
+          },
+          message: "User not found",
+        });
+      }
+
+      // update password (if filled), email and active
       let query = "UPDATE user SET ";
       let arr = [email || null, active === undefined ? 1 : active, username];
+
+      // only update password param if not empty
       if (password) {
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         query += "password = ?, ";
@@ -340,22 +391,15 @@ module.exports = {
         arr
       );
 
-      if (result.length === 0) {
-        return res
-          .status(404)
-          .json({ success: false, message: "User not found" });
-      }
-
       if (assignedGroup && assignedGroup.length > 0) {
         // get list of group ids the current user has (Array of Objects)
-        const [grpIds] = await db.execute(
+        const [grpIds] = await db.query(
           `SELECT gl.group_id FROM group_list gl JOIN user_group ug
         ON gl.group_id = ug.group_id WHERE ug.username = ? `,
           [username]
         );
         // convert into an array of group ids (int)
         const groupIds = grpIds.map((group) => group.group_id);
-        // console.log(groupIds);
 
         // group ids that are assigned to user
         const toInsert = assignedGroup.filter((x) => !groupIds.includes(x));
@@ -370,46 +414,23 @@ module.exports = {
         // group ids that are remove from user (array of int)
         const toDelete = groupIds.filter((x) => !assignedGroup.includes(x));
         if (toDelete.length > 0) {
-          // const groupsToDelete = toDelete.join(", ");
           await db.query(
             "DELETE FROM user_group WHERE username = ? AND group_id IN (?)",
             [username, toDelete]
           );
         }
+      } else if (!groups) {
+        await db.query("DELETE FROM user_group WHERE username = ?", [username]);
       }
 
       res.status(200).json({
         success: true,
-        message: "All fields updated successfully!",
+        message: "User updated successfully!",
         data: groups,
       });
     } catch (error) {
+      console.log(error);
       res.status(500).json({ success: false, error: error.message });
-    }
-  },
-
-  check: async (req, res) => {
-    const username = "test";
-    const groupname = ["group4", "group1"];
-
-    try {
-      const [result] = await db.query(
-        `SELECT group_name FROM group_list gl JOIN user_group ug ON 
-          gl.group_id = ug.group_id WHERE ug.username = ? 
-          AND gl.group_name IN (?)`,
-        [username, groupname]
-      );
-
-      if (result.length === 0) {
-        // return false;
-        return res.status(200).json("false");
-      }
-
-      res.status(200).json("true");
-      // return true;
-    } catch (error) {
-      // return false;
-      return res.status(200).json("false");
     }
   },
 };

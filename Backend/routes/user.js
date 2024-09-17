@@ -16,7 +16,7 @@ router.get(
   userController.getAllUsers
 );
 
-// get user information based on username in token cookie
+// get user information
 router.get("/getUser", verifyTokenAndAuthorize(), userController.getUser);
 
 // update a password
@@ -26,7 +26,7 @@ router.patch(
   userController.updatePassword
 );
 
-// DONE
+// update email
 router.patch(
   "/updateEmail",
   verifyTokenAndAuthorize(),

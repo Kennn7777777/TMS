@@ -44,12 +44,14 @@
 				invalidate('app:rootlayout');
 			}
 		} catch (error) {
-			if (error.response.data.code === 'ERR_AUTH') {
+			const message = error.response?.data?.message || 'An unexpected error occurred';
+
+			if (error.response?.data?.code === 'ERR_ADMIN') {
 				await logOut();
-				showToast(false, error.response.data.message);
+				showToast(false, message);
 			} else {
-				errors = error.response.data.errors;
-				showToast(false, 'Unable to update Email!');
+				errors = error.response?.data?.errors || {};
+				showToast(false, message);
 			}
 		}
 	};
@@ -65,12 +67,14 @@
 				password = '';
 			}
 		} catch (error) {
-			if (error.response.data.code === 'ERR_AUTH') {
+			const message = error.response?.data?.message || 'An unexpected error occurred';
+
+			if (error.response?.data?.code === 'ERR_AUTH') {
 				await logOut();
-				showToast(false, error.response.data.message);
+				showToast(false, message);
 			} else {
-				errors = error.response.data.errors;
-				showToast(false, 'Unable to update Email!');
+				errors = error.response?.data?.errors || {};
+				showToast(false, message);
 			}
 		}
 	};
@@ -95,14 +99,24 @@
 				<h3 class="text-lg font-medium mb-2">Update Email</h3>
 				<div class="flex items-center mb-4 justify-center">
 					<div class="mr-5 w-32">New Email</div>
+					
 					<input
 						bind:value={email}
+						on:input={ () => {
+							if (errors.hasOwnProperty('email')) {
+								delete errors.email;
+							}
+						}}
 						type="email"
 						placeholder="Enter new Email..."
 						class="flex-1 px-3 py-2 border border-gray-300 rounded-md"
 					/>
 				</div>
 				<div class="flex justify-end">
+					<div class="mr-5 w-32 invisible"></div>
+					{#if errors.email}
+						<div class="text-sm flex-1 text-red-500">{errors.email}</div>
+					{/if}
 					<button
 						on:click={handleEmail}
 						class="px-4 py-2 text-sm font-semibold leading-6 bg-primary text-white rounded-md hover:bg-blue-600"
@@ -117,6 +131,7 @@
 
 				<div class="flex items-center mb-4">
 					<div class="mr-5 w-32">New Password</div>
+					
 					<input
 						bind:value={password}
 						on:input={() => {
