@@ -4,14 +4,13 @@ const verifyTokenAndAuthorize = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// DONE
+// creating a group [admin]
 router.post(
   "/createGroup",
   verifyTokenAndAuthorize(["admin"]),
   groupController.createGroup
 );
 
-// DONE
 // retrieve all existing groups (for dropdown)
 router.get(
   "/getAllGroups",

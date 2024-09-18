@@ -48,8 +48,9 @@
 
 	<!-- Dropdown menu -->
 	{#if isOpen}
+		<!-- add bottom-full to put at top instead -->
 		<div class="absolute w-44 bg-white border z-[50]">
-			<div class="p-2 max-h-40 overflow-y-auto">
+			<div class="p-2 max-h-[50vh] overflow-y-auto">
 				{#each items as item}
 					<label class="flex items-center py-1">
 						<input

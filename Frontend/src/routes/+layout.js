@@ -26,7 +26,6 @@ export const load = async ({ url, depends }) => {
 	depends('app:rootlayout');
 
 	if (!(url.pathname === '/login')) {
-		console.log('RUN LAYOUT WHEN NOT LOGIN');
 		try {
 			const response = await api.get('/users/getUser');
 

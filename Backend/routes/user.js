@@ -4,12 +4,14 @@ const verifyTokenAndAuthorize = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
+// Create a single user [admin]
 router.post(
   "/createUser",
   verifyTokenAndAuthorize(["admin"]),
   userController.createUser
 );
 
+// Retrieve all the users [admin]
 router.get(
   "/getAllUsers",
   verifyTokenAndAuthorize(["admin"]),
@@ -40,6 +42,7 @@ router.patch(
   userController.updateActive
 );
 
+// update all fields [admin]
 router.patch(
   "/updateAll",
   verifyTokenAndAuthorize(["admin"]),

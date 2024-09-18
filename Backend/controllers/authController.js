@@ -68,7 +68,7 @@ module.exports = {
 
   logout: (req, res) => {
     res.clearCookie(process.env.JWT_TOKEN_NAME);
-    // res.cookie('access_token', {httpOnly: true, maxAge:0});
+
     res.status(200).json({ success: true, message: "Logout successfully" });
   },
 };

@@ -131,7 +131,7 @@
 
 	<slot />
 
-	<!-- Notification message -->
+	<!-- Toast Notification message -->
 	<ToastContainer placement="bottom-left" let:data>
 		<FlatToast {data} />
 	</ToastContainer>

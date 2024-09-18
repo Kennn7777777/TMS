@@ -357,10 +357,10 @@
 				</table>
 			</div>
 
-			<!-- Create new User Table--> 
-			<div class="custom-scrollbar mt-2 overflow-x-auto static"> <!-- lg:overflow-x-hidden overflow-x-auto md:overflow-x-auto-->
-				<div class="font-bold text-xm ml-5">Create New User</div>
-				<table class="min-w-[90rem] relative ">
+			<!-- Create new User Table  -->
+			<div class="font-bold text-xm ml-5 ">Create New User</div>
+			<div class="custom-scrollbar mt-2 h-[340px] lg:overflow-x-hidden overflow-x-auto md:overflow-x-auto"> 
+				<table class="min-w-[90rem] relative"> <!-- remove relative to test, does not work in smaller screen-->
 					<thead>
 						<tr>
 							<th scope="col" class="w-2/12 px-6"> </th>
@@ -458,8 +458,10 @@
 				</table>
 			</div>
 		</div>
+		
 	</div>
 
+	<!-- show popup modal -->
 	{#if showGroupModal}
 		<div
 			class="fixed inset-0 z-[50] w-full h-screen overflow-y-auto flex items-center justify-center"
@@ -530,6 +532,5 @@
 	.custom-scrollbar::-webkit-scrollbar-track {
 		background: #f1f1f1;
 	}
-
 
 </style>

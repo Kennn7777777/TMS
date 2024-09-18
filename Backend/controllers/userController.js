@@ -146,6 +146,7 @@ module.exports = {
     }
   },
 
+  // check group from frontend
   // Retrieve existing user information
   getUser: async (req, res) => {
     // const { username } = req.body;
