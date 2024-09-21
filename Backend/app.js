@@ -9,6 +9,7 @@ const userRouter = require("./routes/user");
 const authRouter = require("./routes/auth");
 const groupRouter = require("./routes/group");
 const appRouter = require("./routes/app");
+const planRouter = require("./routes/plan");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,6 +29,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/group", groupRouter);
 app.use("/api/app", appRouter);
+app.use("/api/plan", planRouter);
 
 // app.use(errorHandler);
 

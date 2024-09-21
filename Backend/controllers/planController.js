@@ -109,7 +109,7 @@ module.exports = {
     }
 
     try {
-      const [result] = db.query(
+      const [result] = await db.query(
         `
         SELECT * FROM plan WHERE plan_mvp_name = ?
         `,
@@ -122,7 +122,7 @@ module.exports = {
           .json({ success: false, message: "mvp name not found" });
       }
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
         data: result[0],
         message: "Plan details loaded successfully",
