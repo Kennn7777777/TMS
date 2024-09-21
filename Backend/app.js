@@ -8,6 +8,7 @@ const logger = require("morgan");
 const userRouter = require("./routes/user");
 const authRouter = require("./routes/auth");
 const groupRouter = require("./routes/group");
+const appRouter = require("./routes/app");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,6 +27,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/group", groupRouter);
+app.use("/api/app", appRouter);
 
 // app.use(errorHandler);
 

@@ -68,8 +68,8 @@ module.exports = {
         data: result,
         message: "Groups successfully loaded",
       });
-    } catch (err) {
-      return res.status(500).json({ error: err.message });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
     }
   },
 };

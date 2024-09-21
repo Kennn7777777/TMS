@@ -51,7 +51,10 @@ const verifyTokenAndAuthorize = (groups = []) => {
             "Access denied. You must be authenticated to access this resource.",
         });
 
+      // maybe call again each route
       const username = decoded.username;
+
+      //TODO: check if user is disabled
 
       // check if user is allowed to access route
       if (groups.length > 0) {
