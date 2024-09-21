@@ -83,51 +83,113 @@ module.exports = {
   },
 
   updatePlan: async (req, res) => {
-    // const { mvp_name, startDate, endDate, colour } = req.body;
-    // const errors = {};
-    // if (!mvp_name) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "mvp name is required",
-    //   });
-    // }
-    // if (!startDate && !endDate && !colour) {
-    //   return res.status(400).json({
-    //     success: true,
-    //     message: "Application updated successfully!",
-    //   });
-    // }
+    const { mvp_name, startDate, endDate, colour } = req.body;
+    const errors = {};
+
+    if (!mvp_name) {
+      return res.status(400).json({
+        success: false,
+        message: "MVP name is required",
+      });
+    }
+
+    if (!startDate) {
+      errors.startDate = "Start date is required";
+    } else if (!validateDate(startDate)) {
+      errors.startDate = "Invalid date format. Please use dd-mm-yyyy.";
+    }
+
+    if (!endDate) {
+      errors.endDate = "End date is required";
+    } else if (!validateDate(endDate)) {
+      errors.endDate = "Invalid date format. Please use dd-mm-yyyy.";
+    }
+
+    if (!colour) {
+      errors.colour = "Colour is required";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        success: false,
+        errors: errors,
+        message: "Unable to create plan",
+      });
+    }
+
+    if (!startDate && !endDate && !colour) {
+      return res.status(200).json({
+        success: true,
+        message: "Plan updated successfully!",
+      });
+    }
+
+    try {
+      const [result] = await db.query(
+        `UPDATE plan SET plan_startDate = ?, plan_endDate = ?, plan_colour = ?
+        WHERE plan_mvp_name = ?
+        `,
+        [startDate, endDate, colour, mvp_name]
+      );
+
+      if (result.affectedRows === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "MVP name not found" });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Plan updated successfully!",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        message: "Unable to update plan",
+      });
+    }
   },
 
   getPlan: async (req, res) => {
-    const { mvp_name } = req.body;
+    const { mvp_name, app_acronym } = req.body;
 
-    if (!mvp_name) {
-      return res
-        .status(400)
-        .json({ success: false, message: "mvp name is required." });
+    if (!mvp_name || !app_acronym) {
+      return res.status(400).json({
+        success: false,
+        message: "Both mvp name and app_cronym is required.",
+      });
     }
 
     try {
       const [result] = await db.query(
         `
-        SELECT * FROM plan WHERE plan_mvp_name = ?
+        SELECT * FROM plan WHERE plan_mvp_name = ? AND plan_app_acronym = ?
         `,
-        [mvp_name]
+        [mvp_name, app_acronym]
       );
 
       if (result.length === 0) {
         return res
           .status(404)
-          .json({ success: false, message: "mvp name not found" });
+          .json({
+            success: false,
+            message: "mvp name or app acronym not found",
+          });
       }
 
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         data: result[0],
         message: "Plan details loaded successfully",
       });
-    } catch (error) {}
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        message: "Unable to retrieve plan",
+      });
+    }
   },
 
   getAllPlans: async (req, res) => {
@@ -143,7 +205,7 @@ module.exports = {
       return res.status(500).json({
         success: false,
         error: error.message,
-        message: "Something went wrong...",
+        message: "Unable to retrieve all plans",
       });
     }
   },
