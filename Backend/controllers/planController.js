@@ -46,9 +46,10 @@ module.exports = {
     }
 
     try {
+      // check if current plan mvp name exists within the app
       const [result] = await db.query(
-        "SELECT plan_mvp_name FROM plan WHERE plan_mvp_name = ?",
-        [mvp_name]
+        "SELECT plan_mvp_name FROM plan WHERE plan_mvp_name = ? AND plan_app_acronym = ?",
+        [mvp_name, app_acronym]
       );
 
       if (result.length > 0) {
@@ -170,12 +171,10 @@ module.exports = {
       );
 
       if (result.length === 0) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            message: "mvp name or app acronym not found",
-          });
+        return res.status(404).json({
+          success: false,
+          message: "mvp name or app acronym not found",
+        });
       }
 
       res.status(200).json({
@@ -194,7 +193,7 @@ module.exports = {
 
   getAllPlans: async (req, res) => {
     try {
-      const [result] = await db.query("SELECT * FROM plan");
+      const [result] = await db.query("SELECT plan_mvp_name FROM plan");
 
       return res.status(200).json({
         success: true,

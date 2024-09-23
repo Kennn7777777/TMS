@@ -237,10 +237,14 @@ module.exports = {
       res.status(200).json({
         success: true,
         data: result[0],
-        message: "Application details loaded successfully",
+        message: "Application details retrieved successfully",
       });
     } catch (error) {
-      return res.status(500).json({ success: false, error: error.message });
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        message: "Unable to retrieve application!",
+      });
     }
   },
 
@@ -251,7 +255,7 @@ module.exports = {
       return res.status(200).json({
         success: true,
         data: result,
-        message: "All apps loaded successfully",
+        message: "All applications retrieved successfully!",
       });
     } catch (error) {
       return res.status(500).json({ success: false, error: error.message });
