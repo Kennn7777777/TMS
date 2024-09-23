@@ -311,17 +311,195 @@ module.exports = {
       );
 
       if (result.affectedRows === 0) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            message: "Task id not found or task state is not open",
-          });
+        return res.status(404).json({
+          success: false,
+          message: "Task id not found or task state is not open",
+        });
       }
 
       res.status(200).json({
         success: true,
-        message: "Task state updated successfully!",
+        message: "Task state promoted successfully!",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        message: "Unable to update task state!",
+      });
+    }
+  },
+
+  promoteTask2Doing: async (req, res) => {
+    const { task_id } = req.body;
+
+    if (!task_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Task id is required",
+      });
+    }
+
+    try {
+      const [result] = await db.query(
+        `UPDATE task SET task_state = '${state.doing}' WHERE task_id = ? AND task_state = '${state.todo}'`,
+        [task_id]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Task id not found or task state is not todo",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Task state promoted successfully!",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        message: "Unable to update task state!",
+      });
+    }
+  },
+
+  promoteTask2Done: async (req, res) => {
+    const { task_id } = req.body;
+
+    if (!task_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Task id is required",
+      });
+    }
+
+    try {
+      const [result] = await db.query(
+        `UPDATE task SET task_state = '${state.done}' WHERE task_id = ? AND task_state = '${state.doing}'`,
+        [task_id]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Task id not found or task state is not doing",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Task state promoted successfully!",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        message: "Unable to update task state!",
+      });
+    }
+  },
+
+  demoteTask2TodoList: async (req, res) => {
+    const { task_id } = req.body;
+
+    if (!task_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Task id is required",
+      });
+    }
+
+    try {
+      const [result] = await db.query(
+        `UPDATE task SET task_state = '${state.todo}' WHERE task_id = ? AND task_state = '${state.doing}'`,
+        [task_id]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Task id not found or task state is not doing",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Task state demoted successfully!",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        message: "Unable to update task state!",
+      });
+    }
+  },
+
+  promoteTask2Close: async (req, res) => {
+    const { task_id } = req.body;
+
+    if (!task_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Task id is required",
+      });
+    }
+
+    try {
+      const [result] = await db.query(
+        `UPDATE task SET task_state = '${state.close}' WHERE task_id = ? AND task_state = '${state.done}'`,
+        [task_id]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Task id not found or task state is not in the doing state",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Task state promoted successfully!",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        message: "Unable to update task state!",
+      });
+    }
+  },
+
+  demoteTask2Doing: async (req, res) => {
+    const { task_id } = req.body;
+
+    if (!task_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Task id is required",
+      });
+    }
+
+    try {
+      const [result] = await db.query(
+        `UPDATE task SET task_state = '${state.doing}' WHERE task_id = ? AND task_state = '${state.done}'`,
+        [task_id]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Task id not found or task state is not in done state",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Task state demoted successfully!",
       });
     } catch (error) {
       return res.status(500).json({
