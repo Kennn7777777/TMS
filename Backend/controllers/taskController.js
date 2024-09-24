@@ -282,7 +282,6 @@ module.exports = {
 
       res.status(200).json({
         success: true,
-        data: result[0],
         message: "Task notes updated successfully!",
       });
     } catch (error) {
@@ -290,6 +289,42 @@ module.exports = {
         success: false,
         error: error.message,
         message: "Unable to retrieve task details!",
+      });
+    }
+  },
+
+  updateTaskPlan: async (req, res) => {
+    const { task_id, plan } = req.body;
+
+    if (!task_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Task id is required",
+      });
+    }
+
+    try {
+      const [result] = await db.query(
+        `UPDATE task SET task_plan = ? WHERE task_id = ?`,
+        [plan, task_id]
+      );
+
+      if (result.length === 0) {
+        return res.status(404).json({
+          success: true,
+          message: "Task id not found",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Task plan updated successfully!",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        message: "Unable to update task plan!",
       });
     }
   },

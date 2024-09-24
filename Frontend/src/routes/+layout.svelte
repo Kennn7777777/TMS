@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/config.js';
 
+
 	export let data;
 
 	let title = 'Home';
@@ -19,6 +20,9 @@
 			case '/':
 				title = 'App List';
 				break;
+			case '/app':
+				title = 'App List';
+				break;
 			case '/admin':
 				title = 'User Management';
 				break;
@@ -29,6 +33,7 @@
 				title = 'Home';
 		}
 	}
+   
 
 	const handleLogout = async () => {
 		try {
@@ -46,7 +51,8 @@
 <main class="h-full">
 	{#if showNavbar}
 		<nav class="bg-gray-400 sticky top-0 w-full z-[99]">
-			<div class="mx-auto max-w-[90rem] px-2">
+			<!-- max-w-[90rem] -->
+			<div class="mx-auto max-w-[119rem] px-2">
 				<div class="relative flex h-16 items-center justify-between">
 					<div class="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
 						<div class="hidden sm:ml-6 sm:block">
@@ -59,9 +65,11 @@
 							</div>
 						</div>
 					</div>
+					
 					<div
 						class="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0"
 					>
+					
 						<!-- username -->
 						{#if currUser}
 							<div class="font-medium">{currUser.username}</div>
@@ -100,7 +108,7 @@
 								</a>
 
 								<a
-								href="/"
+								href="/app"
 								class="my-2 block border-b border-gray-100 py-1 font-semibold text-gray-500 hover:text-black md:mx-2"
 							>
 								View Apps
@@ -127,6 +135,8 @@
 				</div>
 			</div>
 		</nav>
+
+	
 	{/if}
 
 	<slot />

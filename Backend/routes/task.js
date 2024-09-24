@@ -13,6 +13,8 @@ router.post("/getAllTasks", taskController.getAllTasks);
 router.post("/getTaskDetail", taskController.getTaskDetail);
 // update task notes
 router.patch("/updateTaskNotes", taskController.updateTaskNotes);
+// update task plan
+router.patch("/updateTaskPlan", taskController.updateTaskPlan);
 
 // promote task from open to todolist state [PM] (release task)
 router.patch("/promoteTask2TodoList", taskController.promoteTask2TodoList);
