@@ -152,7 +152,7 @@ module.exports = {
       );
 
       if (result.length === 0) {
-        res.status(200).json({
+        return res.status(200).json({
           success: true,
           data: result,
           message: "No tasks retrieved...",

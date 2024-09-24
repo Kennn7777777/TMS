@@ -192,8 +192,20 @@ module.exports = {
   },
 
   getAllPlans: async (req, res) => {
+    const { app_acronym } = req.body;
+
+    if (!app_acronym) {
+      return res.status(400).json({
+        success: false,
+        message: "App acronym is required.",
+      });
+    }
+
     try {
-      const [result] = await db.query("SELECT plan_mvp_name FROM plan");
+      const [result] = await db.query(
+        "SELECT plan_mvp_name FROM plan WHERE plan_app_acronym = ?",
+        [app_acronym]
+      );
 
       return res.status(200).json({
         success: true,

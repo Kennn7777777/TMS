@@ -17,9 +17,6 @@
 		showNavbar = !($page.url.pathname === '/login');
 
 		switch ($page.url.pathname) {
-			case '/':
-				title = 'App List';
-				break;
 			case '/app':
 				title = 'App List';
 				break;

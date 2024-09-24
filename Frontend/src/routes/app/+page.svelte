@@ -1,4 +1,7 @@
 <script>
+    import { goto } from '$app/navigation';
+    import { pageStore } from '$lib/stores';
+
     import AppCard from '$components/AppCard.svelte';
     import Modal from "$components/Modal.svelte";
     import AppForm from "$components/AppForm.svelte";
@@ -11,8 +14,15 @@
     let showAppModal = false;
     let modalTitle = "Create App";
 
-    const handleCreateApp = () => {
+    // const handleCreateApp = () => {
 
+    // }
+
+    const handleViewApp = (app) => {
+        pageStore.set(app);
+        goto("/kanban");
+
+        // goto("/kanban", { state: { myData: 'Hello from previous page!' } });
     }
 
 </script>
@@ -34,7 +44,11 @@
             <div class="p-8">
                 <div class="grid md:grid-cols-3 sm:grid-cols-1 gap-8">
                     {#each apps as app (app.app_acronym)}
-                        <AppCard title={app.app_acronym} description={app.app_description} rnumber={app.app_rnumber}/>
+                        <AppCard 
+                            handleView={() => handleViewApp(app.app_acronym)}
+                            title={app.app_acronym} 
+                            description={app.app_description} 
+                            rnumber={app.app_rnumber}/>
                     {/each}
                 </div>
             </div>
@@ -44,7 +58,6 @@
     <Modal showModal={showAppModal}>
         <AppForm 
             title={modalTitle} 
-            handleSubmit={handleCreateApp}
             bind:showModal={showAppModal}
         />
     </Modal>

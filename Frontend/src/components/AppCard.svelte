@@ -3,6 +3,9 @@
     export let description = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus quis porta dui. Ut eu
             iaculis massa. Sed ornare ligula lacus, quis iaculis dui porta volutpat. In sit amet posuere magna..`;
     export let rnumber = 1;
+
+    export let showEdit = false;
+    export let handleView;
 </script>
 
 <!-- max-w-[400px] -->
@@ -14,7 +17,7 @@
         <div class="flex flex-row justify-between"> 
           <div>{rnumber}</div>
           <div>
-              <a href="#" class="text-gray-800 underline">View</a>
+              <button on:click={handleView} class="text-gray-800 underline">View</button>
               <a href="#" class="text-red-500 underline">Edit</a>
           </div>
         </div>

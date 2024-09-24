@@ -2,6 +2,15 @@
      export let title = "Create App";
      export let handleSubmit = () => {};
      export let showModal = false;
+     export let errors = {};
+
+     export let acronym;
+     export let description = "";
+     export let rnumber;
+     export let startDate = "20-12-2020";
+     export let endDate;
+
+
 </script>
 
 <div class="bg-white rounded-lg shadow-lg px-6 py-10 w-full max-w-4xl">
@@ -9,22 +18,31 @@
     <h2 class="text-2xl font-semibold mb-4 ml-5">{title}</h2>
 
     <!-- form -->
-    <form on:submit|preventDefault={handleSubmit} class="space-y-4 max-w-3xl mx-auto mt-5">
+    <!-- space-y-4 -->
+    <form on:submit|preventDefault={handleSubmit} class=" max-w-3xl mx-auto mt-5">
         <!-- acronym -->
         <div class="flex items-center justify-center space-x-4">
             <label for="acronym" class="block text-sm font-medium text-gray-700 w-32">Acronym:</label>
             <input
+                bind:value={acronym}
                 on:input={() => {}}
                 type="text"
                 placeholder="Enter acronym..."
                 class="flex-1 px-3 py-2 border border-gray-300 rounded-md"
             />
         </div>
+        
+        <div class="flex space-x-4 mb-4">
+            <div class="w-32" />
+            {#if errors.acronym}
+                <div class="text-sm text-red-500 whitespace-normal break-words">{errors.acronym}</div>
+            {/if}
+        </div>
 
         <!-- description  -->
-        <div class="flex items-center justify-center space-x-4">
+        <div class="flex items-start justify-center space-x-4 mb-4">
             <label for="description" class="block text-sm font-medium text-gray-700 w-32">Description:</label>
-            <textarea class="flex-1 border border-gray-300 rounded-md p-2" id="description" name="description" rows="4" placeholder="Enter your description here..." />
+            <textarea bind:value={description} class="flex-1 border border-gray-300 rounded-md p-2" id="description" name="description" rows="4" placeholder="Enter your description here..." />
         </div>
 
         <!-- r number -->
@@ -33,17 +51,27 @@
             <input
                 id="rnumber"
                 on:input={() => {}}
+                bind:value={rnumber}
                 type="number"
                 placeholder="Enter r number..."
                 class="flex-1 px-3 py-2 border border-gray-300 rounded-md"
             />
         </div>
 
+        <div class="flex space-x-4 mb-4">
+            <div class="w-32" />
+            {#if errors.rnumber}
+                <div class="text-sm text-red-500 whitespace-normal break-words">{errors.rnumber}</div>
+            {/if}
+        </div>
+
         <!-- start/end date -->
         <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
                 <label for="start-date" class="block text-sm font-medium text-gray-700">Start date:</label>
-                <input id="start-date" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md"  />
+                <input id="start-date" type="date" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    value={"2024-09-24"}  />
             </div>
 
             <div class="space-y-2">
@@ -52,10 +80,20 @@
             </div>
         </div>
 
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            {#if errors.startDate}
+                <div class="text-sm text-red-500 whitespace-normal break-words">{errors.startDate}</div>
+            {/if}
+
+            {#if errors.endDate}
+                <div class="text-sm text-red-500 whitespace-normal break-words">{errors.endDate}</div>
+            {/if}
+        </div>
+
         <!-- permit group -->
         <!-- heading -->
         <h3 class="text-sm font-medium text-gray-700">Permit Group:</h3>
-        <div class="space-y-2 flex flex-wrap justify-between">
+        <div class="space-y-2 flex flex-wrap justify-between mb-4">
 
             <!-- create -->
             <div class="flex items-center space-x-4">
