@@ -15,6 +15,9 @@ export default [
 				...globals.browser,
 				...globals.node
 			}
+		},
+		rules: {
+			'no-unused-vars': 'warn' // Set this rule to 'warn' for unused variables
 		}
 	},
 	{

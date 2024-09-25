@@ -9,6 +9,8 @@
     export let taskCreator;
     export let taskOwner;
     export let taskCreatedDate;
+    export let taskNotes;
+    export let plans;
 
     export let showModal = false;
 
@@ -27,38 +29,39 @@
         <h1 class="text-xl font-semibold">Task Detail</h1>
 
         <!-- Task ID -->
-        <p class="my-4 text-sm"><span class="font-semibold">ID:</span> &lt;Task_id&gt;</p>
+        <p class="my-4 text-sm"><span class="font-semibold">ID: </span>{taskId}</p>
 
         <!-- Task Name -->
-        <p class="my-4 text-sm"><span class="font-semibold">Name:</span> &lt;Task_name&gt;</p>
+        <p class="my-4 text-sm"><span class="font-semibold">Name: </span>{taskName}</p>
 
         <!-- Task Description -->
         <div class="my-4">
             <p class="font-semibold">Description:</p>
-            <p class="text-sm text-gray-600">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Some random description.......</p>
+            <textarea value={"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Some random description......."} class="w-full resize-none border border-gray-300 rounded-md p-2" id="description" name="description" rows="4" />
         </div>
 
         <!-- Task State -->
-        <p class="my-4 text-sm"><span class="font-semibold">State:</span> Open</p>
+        <p class="my-4 text-sm"><span class="font-semibold">State:</span> {taskState}</p>
 
         <!-- Plan Dropdown -->
         <div class="flex items-center space-x-2 my-4">
             <label for="plan" class="text-sm font-medium text-gray-700">Plan:</label>
             
-            <select id="plan" class="px-3 py-2 border border-gray-300 rounded-md">
-                <option>Select plan</option>
-                <option>Plan 1</option>
-                <option>Plan 2</option>
-                <option>Plan 3</option>
+            <select bind:value={taskplan} id="plan" class="px-3 py-2 border border-gray-300 rounded-md">
+                <option value="">Select plan</option>
+                {#each plans as {plan_mvp_name}}
+                    <option value={plan_mvp_name}>{plan_mvp_name}</option>
+                {/each}
             </select>
+
         </div>
 
         <!-- Creator and Owner -->
-        <p class="my-4 text-sm"><span class="font-semibold">Creator:</span> &lt;creator_username&gt;</p>
-        <p class="my-4 text-sm"><span class="font-semibold">Owner:</span> &lt;owner_username&gt;</p>
+        <p class="my-4 text-sm"><span class="font-semibold">Creator:</span> {taskCreator}</p>
+        <p class="my-4 text-sm"><span class="font-semibold">Owner:</span> {taskOwner}</p>
 
         <!-- Created Date -->
-        <p class="mt-4 text-sm"><span class="font-semibold">Created date:</span> 01/12/2023</p>
+        <p class="mt-4 text-sm"><span class="font-semibold">Created date:</span> {taskCreatedDate}</p>
     </div>
 
     <!-- Notes Section (Right Side) -->
@@ -82,6 +85,7 @@
             <button
                 on:click={() => {
                     showModal = false;
+                    document.body.classList.remove('overflow-hidden');
                 }} 
                 class="rounded-md bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">Close</button>
             <button class="rounded-md bg-black px-4 py-2 text-white hover:bg-gray-800">Save Changes</button>

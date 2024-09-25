@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 
-const dateRegex = /^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-(\d{4})$/;
+const dateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const validateDate = (date) => {
   return dateRegex.test(date);
 };
@@ -26,65 +26,66 @@ module.exports = {
     const errors = {};
 
     if (!acronym) {
-      errors.acronym = "Acronym is required";
+      errors.acronym = "App Acronym is required";
     }
 
-    if (!rnumber) {
-      errors.rnumber = "Rnumber is required";
-    } else if (rnumber <= 0) {
-      errors.rnumber = "Rnumber must be a positive number";
-    }
-
-    if (typeof rnumber !== "number") {
-      errors.rnumber = "Rnumber should be a number";
+    if (!rnumber && rnumber !== 0) {
+      errors.rnumber = "R number is required";
+    } else {
+      if (rnumber <= 0) {
+        errors.rnumber = "R number must be a positive number";
+      } else if (typeof rnumber !== "number") {
+        errors.rnumber = "R number should be a number";
+      }
     }
 
     if (!startDate) {
       errors.startDate = "Start date is required";
     } else if (!validateDate(startDate)) {
-      errors.startDate = "Invalid date format. Please use dd-mm-yyyy.";
+      errors.startDate = "Invalid date format. Please use YYYY-MM-DD.";
     }
 
     if (!endDate) {
       errors.endDate = "End date is required";
     } else if (!validateDate(endDate)) {
-      errors.endDate = "Invalid date format. Please use dd-mm-yyyy.";
+      errors.endDate = "Invalid date format. Please use YYYY-MM-DD.";
     }
 
-    if (permit_create) {
-      const create_groups = permit_create.split(",");
-      if (!Array.isArray(create_groups)) {
-        errors.permit_create = "Invalid permit_create format";
-      }
-    }
+    // this is for multiple group selection
+    // if (permit_create) {
+    //   const create_groups = permit_create.split(",");
+    //   if (!Array.isArray(create_groups)) {
+    //     errors.permit_create = "Invalid permit_create format";
+    //   }
+    // }
 
-    if (permit_open) {
-      const open_groups = permit_open.split(",");
-      if (!Array.isArray(open_groups)) {
-        errors.permit_open = "Invalid permit_open format";
-      }
-    }
+    // if (permit_open) {
+    //   const open_groups = permit_open.split(",");
+    //   if (!Array.isArray(open_groups)) {
+    //     errors.permit_open = "Invalid permit_open format";
+    //   }
+    // }
 
-    if (permit_todolist) {
-      const todolist_groups = permit_todolist.split(",");
-      if (!Array.isArray(todolist_groups)) {
-        errors.permit_todolist = "Invalid permit_todolist format";
-      }
-    }
+    // if (permit_todolist) {
+    //   const todolist_groups = permit_todolist.split(",");
+    //   if (!Array.isArray(todolist_groups)) {
+    //     errors.permit_todolist = "Invalid permit_todolist format";
+    //   }
+    // }
 
-    if (permit_doing) {
-      const doing_groups = permit_doing.split(",");
-      if (!Array.isArray(doing_groups)) {
-        errors.permit_doing = "Invalid permit_doing format";
-      }
-    }
+    // if (permit_doing) {
+    //   const doing_groups = permit_doing.split(",");
+    //   if (!Array.isArray(doing_groups)) {
+    //     errors.permit_doing = "Invalid permit_doing format";
+    //   }
+    // }
 
-    if (permit_done) {
-      const done_groups = permit_done.split(",");
-      if (!Array.isArray(done_groups)) {
-        errors.permit_done = "Invalid permit_done format";
-      }
-    }
+    // if (permit_done) {
+    //   const done_groups = permit_done.split(",");
+    //   if (!Array.isArray(done_groups)) {
+    //     errors.permit_done = "Invalid permit_done format";
+    //   }
+    // }
 
     if (Object.keys(errors).length > 0) {
       return res.status(400).json({
@@ -105,7 +106,7 @@ module.exports = {
         return res.status(400).json({
           success: false,
           errors: {
-            username: "Acronym name already exists",
+            acronym: "Acronym name already exists",
           },
           message: "Unable to create application!",
         });

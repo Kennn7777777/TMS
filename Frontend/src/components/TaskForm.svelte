@@ -1,7 +1,65 @@
 <script>
+    import { api } from '$lib/config.js';
+    import { invalidate, invalidateAll, goto } from '$app/navigation';
+    import { toasts } from 'svelte-toasts';
+
     export let title = "Create Task";
-    export let handleSubmit = () => {};
     export let showModal = false;
+    // export let handleSubmit = () => {};
+
+    export let acronym;
+    export let username;
+    export let plans;
+
+    let task_name = "";
+    let description = "";
+    let plan = "";
+    let notes = "";
+
+    let errors = {};
+
+    $: {
+        console.log(plans);
+    }
+
+    const showToast = (success, messageDesc) => {
+		if (success) {
+			toasts.success('', messageDesc, { duration: 3000, theme: 'light' });
+		} else {
+			toasts.error('', messageDesc, { duration: 3000, theme: 'light' });
+		}
+	};
+
+    // create task
+    const handleCreateTask = async () => {
+        try {
+            const data = {
+                app_acronym: acronym,
+                name: task_name,
+                description: description || null,
+                plan: plan || null,
+                notes: notes || null,
+                creator: username,
+                owner: username,
+            }
+
+            const response = await api.post("/task/createTask", data);
+
+            if (response.data.success) {
+                showToast(true, response.data.message);
+                showModal = false;
+                invalidate('app:rootlayout');
+                invalidate('app:kanban');
+            }
+
+        } catch (error) {
+            console.log(errors);
+            // TODO: handling error
+            const message = error.response?.data?.message || 'An unexpected error occurred';
+
+            errors = error.response?.data?.errors || {};
+        }
+    }
 </script>
 
 
@@ -10,41 +68,54 @@
     <h2 class="text-2xl font-semibold mb-4 ml-5">{title}</h2>
 
     <!-- form -->
-    <form on:submit|preventDefault={handleSubmit} class="space-y-4 max-w-3xl mx-auto mt-5">
+    <form on:submit|preventDefault={handleCreateTask} class="max-w-3xl mx-auto mt-5">
         <!-- task name -->
         <div class="flex items-center justify-center space-x-4">
-            <label for="name" class="block text-sm font-medium text-gray-700 w-32">Name:</label>
+            <label for="task_name" class="block text-sm font-medium text-gray-700 w-32">Name:</label>
             <input
-                id = "name"
-                on:input={() => {}}
+                bind:value={task_name}
+                id = "task_name"
+                on:input={() => {
+                    if (errors.hasOwnProperty('name')) {
+                        delete errors.name;
+                    }
+                }}
                 type="text"
                 placeholder="Enter task name..."
                 class="flex-1 px-3 py-2 border border-gray-300 rounded-md"
             />
         </div>
 
+        <!-- task name error message -->
+        <div class="flex space-x-4 mb-4">
+            <div class="w-32" />
+            {#if errors.name}
+                <div class="text-sm text-red-500 whitespace-normal break-words">{errors.name}</div>
+            {/if}
+        </div>
+
         <!-- description  -->
-        <div class="flex items-start justify-center space-x-4">
+        <div class="flex items-start justify-center space-x-4 mb-4">
             <label for="description" class="block text-sm font-medium text-gray-700 w-32">Description:</label>
-            <textarea class="flex-1 border border-gray-300 rounded-md p-2" id="description" name="description" rows="4" placeholder="Enter your description here..." />
+            <textarea bind:value={description} class="flex-1 border border-gray-300 rounded-md p-2 resize-none" id="description" name="description" rows="4" maxlength="255" placeholder="Enter your description here..." />
         </div>
 
         <!-- plan -->
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-4 mb-4">
             <label for="plan" class="w-32 text-sm font-medium text-gray-700">Plan:</label>
             
-            <select id="plan" class="px-3 py-2 border border-gray-300 rounded-md">
-                <option>Select plan</option>
-                <option>Plan 1</option>
-                <option>Plan 2</option>
-                <option>Plan 3</option>
+            <select bind:value={plan} id="plan" class="px-3 py-2 border border-gray-300 rounded-md">
+                <option value="">Select plan</option>
+                {#each plans as {plan_mvp_name}}
+                    <option value={plan_mvp_name}>{plan_mvp_name}</option>
+                {/each}
             </select>
         </div>
 
         <!-- notes -->
-        <div class="flex items-start justify-center space-x-4">
+        <div class="flex items-start justify-center space-x-4 mb-4">
             <label for="notes" class="block text-sm font-medium text-gray-700 w-32">Notes:</label>
-            <textarea id="notes" class="flex-1 border border-gray-300 rounded-md p-2" name="notes" rows="4" placeholder="Enter your notes here..." />
+            <textarea bind:value={notes} id="notes" class="flex-1 border border-gray-300 rounded-md p-2 resize-none" name="notes" rows="6" placeholder="Enter your notes here..." />
         </div>
 
         <!-- buttons -->

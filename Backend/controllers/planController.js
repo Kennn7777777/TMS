@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 
-const dateRegex = /^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-(\d{4})$/;
+const dateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const validateDate = (date) => {
   return dateRegex.test(date);
 };
@@ -14,27 +14,27 @@ module.exports = {
     let errors = {};
 
     if (!mvp_name) {
-      errors.mvp_name = "MVP name is required";
+      errors.mvp_name = "Plan name is required";
     }
 
     if (!startDate) {
       errors.startDate = "Start date is required";
     } else if (!validateDate(startDate)) {
-      errors.startDate = "Invalid date format. Please use dd-mm-yyyy.";
+      errors.startDate = "Invalid date format. Please use YYYY-MM-DD.";
     }
 
     if (!endDate) {
       errors.endDate = "End date is required";
     } else if (!validateDate(endDate)) {
-      errors.endDate = "Invalid date format. Please use dd-mm-yyyy.";
+      errors.endDate = "Invalid date format. Please use YYYY-MM-DD.";
     }
 
     if (!app_acronym) {
-      errors.app_acronym = "app_acronym is required";
+      errors.app_acronym = "App Acronym is required";
     }
 
     if (!colour) {
-      errors.colour = "colour is required";
+      errors.colour = "Colour is required";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -56,9 +56,9 @@ module.exports = {
         return res.status(400).json({
           success: false,
           errors: {
-            mvp_name: "Plan name taken",
+            mvp_name: "Plan name already exists",
           },
-          message: "Plan name already exists",
+          message: "Unable to create plan!",
         });
       }
 
@@ -84,26 +84,27 @@ module.exports = {
   },
 
   updatePlan: async (req, res) => {
-    const { mvp_name, startDate, endDate, colour } = req.body;
+    const { mvp_name, app_acronym, startDate, endDate, colour } = req.body;
     const errors = {};
 
     if (!mvp_name) {
-      return res.status(400).json({
-        success: false,
-        message: "MVP name is required",
-      });
+      errors.mvp_name = "Plan name is required";
+    }
+
+    if (!app_acronym) {
+      errors.app_acronym = "App Acronym is required";
     }
 
     if (!startDate) {
       errors.startDate = "Start date is required";
     } else if (!validateDate(startDate)) {
-      errors.startDate = "Invalid date format. Please use dd-mm-yyyy.";
+      errors.startDate = "Invalid date format. Please use YYYY-MM-DD.";
     }
 
     if (!endDate) {
       errors.endDate = "End date is required";
     } else if (!validateDate(endDate)) {
-      errors.endDate = "Invalid date format. Please use dd-mm-yyyy.";
+      errors.endDate = "Invalid date format. Please use YYYY-MM-DD.";
     }
 
     if (!colour) {
@@ -114,23 +115,39 @@ module.exports = {
       return res.status(400).json({
         success: false,
         errors: errors,
-        message: "Unable to create plan",
+        message: "Unable to update plan",
       });
     }
 
-    if (!startDate && !endDate && !colour) {
-      return res.status(200).json({
-        success: true,
-        message: "Plan updated successfully!",
-      });
-    }
+    // if (!startDate && !endDate && !colour) {
+    //   return res.status(200).json({
+    //     success: true,
+    //     message: "Plan updated successfully!",
+    //   });
+    // }
 
     try {
+      // check if current plan mvp name exists within the app
+      const [plan_exists] = await db.query(
+        "SELECT plan_mvp_name FROM plan WHERE plan_mvp_name = ? AND plan_app_acronym = ?",
+        [mvp_name, app_acronym]
+      );
+
+      if (plan_exists.length === 0) {
+        return res.status(400).json({
+          success: false,
+          errors: {
+            mvp_name: "Plan name does not exists",
+          },
+          message: "Unable to update plan!",
+        });
+      }
+
       const [result] = await db.query(
         `UPDATE plan SET plan_startDate = ?, plan_endDate = ?, plan_colour = ?
-        WHERE plan_mvp_name = ?
+        WHERE plan_mvp_name = ? AND plan_app_acronym = ?
         `,
-        [startDate, endDate, colour, mvp_name]
+        [startDate, endDate, colour, mvp_name, app_acronym]
       );
 
       if (result.affectedRows === 0) {

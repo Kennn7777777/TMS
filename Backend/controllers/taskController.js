@@ -62,13 +62,27 @@ module.exports = {
         return res.status(400).json({
           success: false,
           errors: {
-            username: "Application acronym does not exists",
+            acronym: "Application acronym does not exists",
           },
           message: "Unable to create task!",
         });
       }
 
-      // TODO: check if task name already exists within application?
+      // check if task name already exists within application
+      const [task_name] = await db.query(
+        `SELECT task_name FROM task WHERE task_app_acronym = ? AND task_name = ?`,
+        [app_acronym, name]
+      );
+
+      if (task_name.length > 0) {
+        return res.status(400).json({
+          success: false,
+          errors: {
+            name: "Task name already exists",
+          },
+          message: "Unable to create task!",
+        });
+      }
 
       // BEGIN TRANSACTION
       // generate task id
@@ -238,7 +252,7 @@ module.exports = {
 
       if (result.length === 0) {
         return res.status(404).json({
-          success: true,
+          success: false,
           message: "Task id not found",
         });
       }

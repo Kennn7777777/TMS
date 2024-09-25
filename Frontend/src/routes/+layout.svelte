@@ -1,6 +1,7 @@
 <script>
 	import '../app.css';
 	import { page } from '$app/stores';
+	import { pageStore } from '$lib/stores';
 	import { ToastContainer, FlatToast } from 'svelte-toasts';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/config.js';
@@ -19,6 +20,9 @@
 		switch ($page.url.pathname) {
 			case '/app':
 				title = 'App List';
+				break;
+			case "/kanban":
+				title = `Kanban (${$pageStore})`;
 				break;
 			case '/admin':
 				title = 'User Management';
@@ -49,7 +53,7 @@
 	{#if showNavbar}
 		<nav class="bg-gray-400 sticky top-0 w-full z-[99]">
 			<!-- max-w-[90rem] -->
-			<div class="mx-auto max-w-[119rem] px-2">
+			<div class="mx-auto max-w-[90rem] px-2">
 				<div class="relative flex h-16 items-center justify-between">
 					<div class="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
 						<div class="hidden sm:ml-6 sm:block">
@@ -71,7 +75,7 @@
 						{#if currUser}
 							<div class="font-medium">{currUser.username}</div>
 						{/if}
-						<!-- Profile dropdown -->
+						<!-- profile dropdown -->
 						<div class="group relative cursor-pointer py-2">
 							<div class="relative ml-3">
 								<div>
@@ -132,8 +136,6 @@
 				</div>
 			</div>
 		</nav>
-
-	
 	{/if}
 
 	<slot />

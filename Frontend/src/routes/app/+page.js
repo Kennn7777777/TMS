@@ -6,13 +6,21 @@ export const load = async ({ depends, parent }) => {
 		depends('app:applist');
 		console.log('LOAD ALL APPS');
 
-		const response = await api.get('/app/getAllApps');
+		const requests = [api.get('/app/getAllApps'), api.get('/group/getAllGroups')];
 
-		if (response.data.success) {
-			const apps = response.data.data;
+		const [appsRes, groupsRes] = await Promise.all(requests);
+		const apps = appsRes.data.data;
+		const groups = groupsRes.data.data;
 
-			return { apps };
-		}
+		return { apps, groups };
+
+		// const response = await api.get('/app/getAllApps');
+
+		// if (response.data.success) {
+		// 	const apps = response.data.data;
+
+		// 	return { apps };
+		// }
 	} catch (error) {
 		console.log(error);
 	}

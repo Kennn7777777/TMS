@@ -4,21 +4,22 @@ import { pageStore } from '$lib/stores';
 
 const taskState = ['open', 'todo', 'doing', 'done', 'close'];
 
-export const load = async ({ parent }) => {
-	// console.log('State:', state);
-	// const { app } = await parent();
-
-	let app_acronym;
-	pageStore.subscribe((value) => {
-		app_acronym = value;
-	})();
-
-	// console.log(myData);
-
-	// const app_acronym = 'test_acronym';
-	// const myData = state?.app || 'Default Data';
-
+export const load = async ({ parent, depends }) => {
 	try {
+		const { userData } = await parent();
+		depends('app:kanban');
+
+		let app_acronym;
+
+		pageStore.subscribe((value) => {
+			app_acronym = value;
+		})();
+
+		// redirect user back to app list page (if refresh)
+		if (!app_acronym) {
+			goto('/app', { replaceState: true });
+		}
+
 		const requests = [];
 
 		for (let i = 0; i < taskState.length; i++) {
@@ -27,14 +28,28 @@ export const load = async ({ parent }) => {
 			);
 		}
 
-		const [open, todo, doing, done, close] = await Promise.all(requests);
+		requests.push(api.post('/plan/getAllPlans', { app_acronym: app_acronym }));
+
+		const [open, todo, doing, done, close, planReq] = await Promise.all(requests);
 		const openTasks = open.data.data;
 		const todoTasks = todo.data.data;
 		const doingTasks = doing.data.data;
 		const doneTasks = done.data.data;
 		const closeTasks = close.data.data;
+		const plans = planReq.data.data;
 
-		return { openTasks, todoTasks, doingTasks, doneTasks, closeTasks };
+		// console.log('plans: ' + plans);
+
+		return {
+			openTasks,
+			todoTasks,
+			doingTasks,
+			doneTasks,
+			closeTasks,
+			app_acronym,
+			plans,
+			username: userData.username
+		};
 	} catch (error) {
 		console.log(error);
 	}
