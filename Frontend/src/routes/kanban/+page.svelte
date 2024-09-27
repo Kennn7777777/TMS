@@ -53,8 +53,7 @@
         }
     }
 
-    const handleViewTaskDetail = async (task_id) => {
-        
+    const handleViewTaskDetail = async (task_id) => {  
         try {
             const response = await api.post("/task/getTaskDetail", { task_id: task_id });
 
@@ -231,7 +230,7 @@
     </div>
 
     <!-- TODO: only display to authorized groups -->
-    <!-- Task Modal -->
+    <!-- Task Create Modal -->
     <Modal showModal={showTaskModal}>
         <TaskForm
             acronym={app_acronym}  
@@ -270,7 +269,7 @@
             taskName={taskData.task_name}
             taskDesc={taskData.task_description ??= "-"}
             taskState={taskData.task_state}
-            taskplan={taskData.task_plan ??= ""}
+            taskPlan={taskData.task_plan ??= ""}
             taskCreator={taskData.task_creator}
             taskOwner={taskData.task_owner}
             taskCreatedDate={taskData.task_createdDate}

@@ -1,96 +1,333 @@
 <script>
-    import { goto } from '$app/navigation';
+    import { api } from '$lib/config.js';
+    import { invalidate, invalidateAll, goto } from '$app/navigation';
+    import { toasts } from 'svelte-toasts';
 
     export let taskId;
     export let taskName;
     export let taskDesc;
     export let taskState;
-    export let taskplan;
+    export let taskPlan;
     export let taskCreator;
     export let taskOwner;
     export let taskCreatedDate;
-    export let taskNotes;
-    export let plans;
+    export let taskNotes; // displayed notes in field
+    export let plans; // for dropdown
 
-    export let showModal = false;
 
-    export let handleSaveChanges = () => {};
-    export let handleDemote = () => {};
-    export let handlePromote = () => {};
+    let prevTaskPlan = taskPlan;
+    let notes = ""; // entered notes
     
 
+    $: displayNotes = taskNotes.split("§");
+    $: {
+        // console.log(displayNotes);
+    }
+
+    export let showModal = false;
+    
+    const state = {
+        open: "open",
+        todo: "todo",
+        doing: "doing",
+        done: "done",
+        close: "close",
+    };
+
+    const handleReloadTaskDetail = async () => {  
+        try {
+            const response = await api.post("/task/getTaskDetail", { task_id: taskId });
+
+            if (response.data.success) {
+                const taskData = response.data.data;
+                taskPlan = taskData.task_plan;
+                prevTaskPlan = taskPlan;
+                taskNotes = taskData.task_notes;
+            }
+
+        } catch (error) {
+            // TODO: handle errors
+            console.log(error);
+        }
+    }
+
+    const showToast = (success, messageDesc) => {
+		if (success) {
+			toasts.success('', messageDesc, { duration: 3000, theme: 'light' });
+		} else {
+			toasts.error('', messageDesc, { duration: 3000, theme: 'light' });
+		}
+	};
+
+    const handleSaveChanges = async () => {
+        try {
+            let displayMessage = 0;
+            let toastMsg = "";
+
+            // only check update task plan for open(PM) and done(PL) state 
+            if (taskState === state.open || taskState === state.done) {
+                // only update and log task if there is a change in the plan
+                if (taskPlan !== prevTaskPlan) {
+                    const data = {
+                        task_id: taskId,
+                        prev_plan: prevTaskPlan,
+                        plan: taskPlan || null,
+                        curr_state: taskState
+                    }
+
+                    const response = await api.patch("/task/updateTaskPlan", data);
+
+                    if (response.data.success) {
+                        displayMessage ++;
+                        toastMsg = response.data.message;
+                        // showToast(true, response.data.message);
+                        // showModal = false;
+                        // invalidate('app:rootlayout');
+                        // invalidate('app:kanban');
+                    }
+                }
+            }
+
+            // all states is able to update notes
+            // update and log task notes
+            // issue 1: "null" or "" plan
+            if (notes) {
+                const data = {
+                    task_id: taskId,
+                    notes: notes,
+                    curr_state: taskState
+                }
+
+                const response = await api.patch("/task/updateTaskNotes", data);
+
+                if (response.data.success) {
+                    displayMessage ++;
+                    toastMsg = response.data.message;
+                    // showToast(true, response.data.message);
+                    // showModal = false;
+                    // invalidate('app:rootlayout');
+                    // invalidate('app:kanban');
+                }
+            }
+
+            if (displayMessage === 1) {
+                showToast(true, toastMsg);
+                // showModal = false;
+                invalidate('app:rootlayout');
+                invalidate('app:kanban');
+                await handleReloadTaskDetail();
+            } else if (displayMessage === 2) {
+                showToast(true, "Both task plan and notes updated successfully");
+                // showModal = false;
+                invalidate('app:rootlayout');
+                invalidate('app:kanban');
+                await handleReloadTaskDetail();
+            }
+
+            displayMessage = 0;
+            toastMsg = "";
+            notes = "";
+
+        } catch (error) {
+            console.log(error);
+        }
+
+    };
+
+    const checkDisabledPromote = () => {
+       
+        if (taskState === state.close) {
+            return true;
+        }
+
+        return false;
+    }
+
+    const checkDisabledDemote = () => {
+        if (taskState === state.open) {
+            return true;
+        }
+
+        if (taskState === state.close) {
+            return true;
+        }
+
+        return false;
+    }
+
+    // save => plan (open, done) and notes (all state except close?)
+    // update plan in [open](PM) [done](PL) 
+    // promote/demote => plan and notes + task state change
+    // created, promote, demote tasks
+    const handleDemote = async () => {
+        try {
+            let apiStr;
+
+            // DEV (give up)
+            if (taskState === state.doing) {
+                apiStr = "demoteTask2TodoList";
+            }
+
+            // PL (revert state)
+            if (taskState === state.done) {
+                apiStr = "demoteTask2Doing";
+            }
+
+            const response = await api.patch(`/task/${apiStr}`, {task_id: taskId});
+                
+            if (response.data.success) {
+                showToast(true, response.data.message);
+                showModal = false;
+                document.body.classList.remove('overflow-hidden');
+                invalidate('app:rootlayout');
+                invalidate('app:kanban');
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
+    const handlePromote = async () => {
+        // TODO: check which group is able to perform the actions in different states
+        try {
+            let apiStr;
+
+            // PM (release task)
+            if (taskState === state.open) {
+                apiStr = "promoteTask2TodoList";
+            }
+
+            // DEV (take on task)
+            if (taskState === state.todo) {
+                apiStr = "promoteTask2Doing";
+            }
+
+            // DEV (request approval)
+            if (taskState === state.doing) {
+                apiStr = "promoteTask2Done";
+            }
+
+            // PL (approve)
+            if (taskState === state.done) {
+                apiStr = "promoteTask2Close";
+            }
+
+            if (taskState === state.close) {
+
+            }
+
+            const response = await api.patch(`/task/${apiStr}`, {task_id: taskId});
+                
+            if (response.data.success) {
+                showToast(true, response.data.message);
+                showModal = false;
+                document.body.classList.remove('overflow-hidden');
+                invalidate('app:rootlayout');
+                invalidate('app:kanban');
+            }
+
+        } catch (error) {
+            console.log(error);
+        }
+        
+    };
+    
 </script>
 
-
 <!-- Main Container -->
-<div class="min-h-[90vh] min-w-[90vw] bg-gray-100 flex">
+<!-- min-h-[95vh] -->
+<div class="h-[95vh] min-w-[90vw] bg-gray-100 flex">
     <!-- Task Details Section (Left Side) -->
-    <div class="w-1/4 border-r border-gray-200 bg-white p-6">
+    <div class="w-1/4 border-r border-gray-200 bg-white p-6 h-full">
         <h1 class="text-xl font-semibold">Task Detail</h1>
 
         <!-- Task ID -->
-        <p class="my-4 text-sm"><span class="font-semibold">ID: </span>{taskId}</p>
+        <p class="my-4 text-base"><span class="font-semibold">ID: </span>{taskId}</p>
 
         <!-- Task Name -->
-        <p class="my-4 text-sm"><span class="font-semibold">Name: </span>{taskName}</p>
+        <p class="my-4 text-base"><span class="font-semibold">Name: </span>{taskName}</p>
 
         <!-- Task Description -->
         <div class="my-4">
             <p class="font-semibold">Description:</p>
-            <textarea value={"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Some random description......."} class="w-full resize-none border border-gray-300 rounded-md p-2" id="description" name="description" rows="4" />
+            <textarea value={taskDesc} disabled class="w-full resize-none border border-gray-300 rounded-md p-2" id="description" name="description" rows="6" />
         </div>
 
         <!-- Task State -->
-        <p class="my-4 text-sm"><span class="font-semibold">State:</span> {taskState}</p>
+        <p class="my-4 text-base"><span class="font-semibold">State:</span> {taskState}</p>
 
         <!-- Plan Dropdown -->
         <div class="flex items-center space-x-2 my-4">
-            <label for="plan" class="text-sm font-medium text-gray-700">Plan:</label>
+            <label for="plan" class="text-base font-medium text-gray-700">Plan:</label>
             
-            <select bind:value={taskplan} id="plan" class="px-3 py-2 border border-gray-300 rounded-md">
-                <option value="">Select plan</option>
-                {#each plans as {plan_mvp_name}}
-                    <option value={plan_mvp_name}>{plan_mvp_name}</option>
-                {/each}
+            <select 
+                disabled={taskState !== state.open && taskState !== state.done}
+                bind:value={taskPlan} id="plan" 
+                    class="px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed">
+                    <option value="">Select plan</option>
+                    {#each plans as {plan_mvp_name}}
+                        <option value={plan_mvp_name}>{plan_mvp_name}</option>
+                    {/each}
             </select>
-
         </div>
 
         <!-- Creator and Owner -->
-        <p class="my-4 text-sm"><span class="font-semibold">Creator:</span> {taskCreator}</p>
-        <p class="my-4 text-sm"><span class="font-semibold">Owner:</span> {taskOwner}</p>
+        <p class="my-4 text-base"><span class="font-semibold">Creator:</span> {taskCreator}</p>
+        <p class="my-4 text-base"><span class="font-semibold">Owner:</span> {taskOwner}</p>
 
         <!-- Created Date -->
-        <p class="mt-4 text-sm"><span class="font-semibold">Created date:</span> {taskCreatedDate}</p>
+        <p class="mt-4 text-base"><span class="font-semibold">Created date:</span> {taskCreatedDate}</p>
     </div>
 
     <!-- Notes Section (Right Side) -->
+    <!-- h-full -->
     <div class="w-3/4 bg-white p-6 flex flex-col">
         <!-- Notes Label -->
-        <label for="notes" class="block text-sm font-semibold">Notes:</label>
+        <label for="notes" class="block text-sm font-semibold mb-2" disabled>Notes:</label>
 
         <!-- Notes Field -->
-        <div class="flex-1 mt-2 h-64 rounded-md border border-gray-300 bg-gray-50 p-4">
-            <p class="text-center text-gray-400">Notes Field</p>
-
+        <div class="h-4/6 3xl:h-3/4 overflow-y-auto rounded-md border border-gray-300 bg-gray-100 text-gray-800 p-4">
+            <!-- <p class="text-center text-gray-400">Notes Field</p> -->
+            {#each displayNotes as note} 
+                <p>{@html note}</p><br />
+            {/each}
         </div>
 
-        <!-- Input for Adding Notes -->
-        <div class="mt-4">
-            <textarea rows="4" placeholder="Enter notes here..." class="w-full rounded-md border border-gray-300 p-2 focus:border-indigo-500 focus:ring-indigo-500"></textarea>
-        </div>
+        <!-- Input for Adding Notes h-1/4 -->
+        <div class="h-2/6 3xl:h-1/4">
+            <div class="mt-4">
+                <textarea bind:value={notes} rows="4" placeholder="Enter notes here..." class="w-full resize-none rounded-md border border-gray-300 p-2 focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50"></textarea>
+            </div>
 
-        <!-- Action Buttons -->
-        <div class="mt-6 flex justify-end space-x-4">
-            <button
-                on:click={() => {
-                    showModal = false;
-                    document.body.classList.remove('overflow-hidden');
-                }} 
-                class="rounded-md bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">Close</button>
-            <button class="rounded-md bg-black px-4 py-2 text-white hover:bg-gray-800">Save Changes</button>
-            <button class="cursor-not-allowed rounded-md bg-gray-300 px-4 py-2 text-gray-500" disabled>Demote</button>
-            <button class="rounded-md bg-primary px-4 py-2 text-white hover:bg-blue-700">Promote</button>
+            <!-- Action Buttons -->
+            <div class="mt-4 flex justify-end space-x-4">
+                <button
+                    on:click={() => {
+                        showModal = false;
+                        document.body.classList.remove('overflow-hidden');
+                    }} 
+                    class="rounded-md bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">Close
+                </button>
+                
+                <button 
+                    on:click={handleSaveChanges}
+                    class="rounded-md bg-black px-4 py-2 text-white hover:bg-gray-800">Save Changes
+                </button>
+                
+                <button
+                    disabled={checkDisabledDemote()}
+                    on:click={handleDemote}
+                    class="rounded-md bg-primary px-4 py-2 text-white hover:bg-blue-700
+                        disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500">Demote
+                </button>
+
+                <button 
+                    disabled={checkDisabledPromote()}
+                    on:click={handlePromote}
+                    class="rounded-md bg-primary px-4 py-2 text-white hover:bg-blue-700
+                    disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500">Promote
+                </button>
+            </div>
         </div>
     </div>
    

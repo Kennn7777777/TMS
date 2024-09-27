@@ -7,6 +7,9 @@ export default {
 				primary: {
 					DEFAULT: '#18A0FB'
 				}
+			},
+			screens: {
+				'3xl': '1920px'
 			}
 		}
 	},

@@ -15,7 +15,7 @@
 </script>
 
 <!-- h-[9rem] -->
-<div class="flex flex-col mb-4 rounded-sm border border-l-4 bg-gray-50 p-3 shadow-sm w-full " style="border-left-color: #{color}; ">
+<div class="flex flex-col mb-4 rounded-sm border border-l-[6px] bg-gray-50 p-3 shadow-sm w-full " style="border-left-color: #{color}; ">
     <h3 class="mb-2 font-semibold">{taskName}</h3>
     <p class="flex-grow text-sm text-gray-600">{truncateString(description)}</p>
     <div class="mt-2 flex items-center justify-between">

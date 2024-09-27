@@ -11,6 +11,15 @@ const state = {
   close: "close",
 };
 
+const actions = {
+  create: "create",
+  promoted: "promoted",
+  demoted: "demoted",
+  notes: "notes",
+  plan: "plan",
+};
+
+// get current date in the format of DD-MM-YYYY
 const getCurrDate = () => {
   const today = new Date();
   const day = String(today.getDate()).padStart(2, "0"); // Get day and pad with zero if needed
@@ -18,6 +27,111 @@ const getCurrDate = () => {
   const year = today.getFullYear(); // Get the full year
 
   return `${day}-${month}-${year}`; // Format as DD-MM-YYYY
+};
+
+const getCurrDateTime = () => {
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, "0"); // Get day and pad with zero if needed
+  const month = String(today.getMonth() + 1).padStart(2, "0"); // Months are zero-based
+  const year = today.getFullYear(); // Get the full year
+
+  const hours = String(today.getHours()).padStart(2, "0");
+  const mins = String(today.getMinutes()).padStart(2, "0");
+  const secs = String(today.getSeconds()).padStart(2, "0");
+
+  return `${day}-${month}-${year} ${hours}:${mins}:${secs}`;
+};
+
+// audit trail in contains username, current state, date & timestamp, notes
+const auditLog = async (
+  action,
+  username,
+  task_id,
+  notes,
+  prev_state,
+  curr_state,
+  prev_plan,
+  curr_plan
+) => {
+  let actionStr = `User "${username}" `;
+  let stateStr = `Current state: `;
+  let noteStr = undefined;
+
+  // create task action
+  if (action === actions.create) {
+    actionStr += `created a new task.<br/>`;
+    if (notes) {
+      noteStr = `Notes:<br/>${notes}`;
+    }
+  }
+
+  // promote task action
+  if (action === actions.promoted) {
+    actionStr += `has promoted task from "${prev_state}" state to "${curr_state}" state.<br/>`;
+  }
+
+  // demote task action
+  if (action === actions.demoted) {
+    actionStr += `has demoted task from "${prev_state}" state to "${curr_state}" state.<br/>`;
+  }
+
+  // update notes action
+  if (action === actions.notes) {
+    actionStr += `has updated task notes.<br/>`;
+    if (notes) {
+      noteStr = `Notes:<br/>${notes}`;
+    }
+  }
+
+  // update plan action
+  if (action === actions.plan) {
+    if (prev_plan) {
+      actionStr += `has change task plan from "${prev_plan}" to "${curr_plan}".<br/>`;
+    } else {
+      actionStr += `has change task plan to "${curr_plan}".<br/>`;
+    }
+  }
+
+  stateStr += `${curr_state}<br/>`;
+
+  // generate date and time
+  const dateTime = `<b>${getCurrDateTime()}:</b><br/>`;
+
+  // format audit log
+  const logStr = `${dateTime}${actionStr}${stateStr}${(noteStr ??= "")}`;
+
+  try {
+    // retrieve existing notes
+    const [existing_notes] = await db.query(
+      `SELECT task_notes FROM task WHERE task_id = ?`,
+      [task_id]
+    );
+
+    if (existing_notes.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Task id not found",
+      });
+    }
+
+    let updated_notes;
+
+    // append delimited and current notes to existing notes
+    if (existing_notes[0].task_notes) {
+      updated_notes = `${existing_notes[0].task_notes}§${logStr}`;
+    } else {
+      updated_notes = logStr;
+    }
+
+    // update db with the updated notes
+    await db.query(`UPDATE task SET task_notes = ? WHERE task_id = ?`, [
+      updated_notes,
+      task_id,
+    ]);
+  } catch (error) {
+    // TODO: handle errors
+    throw error;
+  }
 };
 
 module.exports = {
@@ -112,23 +226,33 @@ module.exports = {
 
       const createdDate = getCurrDate();
 
+      // remove task_notes field because auditlog will add in
       const [result] = await db.query(
         `INSERT INTO task
-        (task_id, task_name, task_description, task_notes, task_plan, 
+        (task_id, task_name, task_description, task_plan, 
         task_app_acronym, task_creator, task_owner, task_createdDate) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `,
         [
           task_id,
           name,
           description || null,
-          notes || null,
+          // notes || null,
           plan || null,
           app_acronym,
           creator,
           owner,
           createdDate,
         ]
+      );
+
+      await auditLog(
+        actions.create,
+        req.username,
+        task_id,
+        notes,
+        null,
+        state.open
       );
 
       res.status(201).json({
@@ -272,7 +396,7 @@ module.exports = {
   },
 
   updateTaskNotes: async (req, res) => {
-    const { task_id, notes } = req.body;
+    const { task_id, notes, curr_state } = req.body;
 
     if (!task_id) {
       return res.status(400).json({
@@ -282,17 +406,40 @@ module.exports = {
     }
 
     try {
-      const [result] = await db.query(
-        `UPDATE task SET task_notes = ? WHERE task_id = ?`,
-        [notes, task_id]
-      );
+      // // retrieve existing notes
+      // const [existing_notes] = await db.query(
+      //   `SELECT task_notes FROM task WHERE task_id = ?`,
+      //   [task_id]
+      // );
 
-      if (result.length === 0) {
-        return res.status(404).json({
-          success: true,
-          message: "Task id not found",
-        });
-      }
+      // if (existing_notes.length === 0) {
+      //   return res.status(404).json({
+      //     success: false,
+      //     message: "Task id not found",
+      //   });
+      // }
+
+      // let updated_notes = notes;
+
+      // // append delimited and current notes to existing notes
+      // if (existing_notes[0].task_notes) {
+      //   updated_notes = `${existing_notes[0].task_notes}§${notes}`;
+      // }
+
+      // // update db with the updated notes
+      // const [result] = await db.query(
+      //   `UPDATE task SET task_notes = ? WHERE task_id = ?`,
+      //   [updated_notes, task_id]
+      // );
+
+      await auditLog(
+        actions.notes,
+        req.username,
+        task_id,
+        notes,
+        null,
+        curr_state
+      );
 
       res.status(200).json({
         success: true,
@@ -308,7 +455,7 @@ module.exports = {
   },
 
   updateTaskPlan: async (req, res) => {
-    const { task_id, plan } = req.body;
+    const { task_id, prev_plan, plan, curr_state } = req.body;
 
     if (!task_id) {
       return res.status(400).json({
@@ -325,20 +472,31 @@ module.exports = {
 
       if (result.length === 0) {
         return res.status(404).json({
-          success: true,
+          success: false,
           message: "Task id not found",
         });
       }
 
+      await auditLog(
+        actions.plan,
+        req.username,
+        task_id,
+        null,
+        null,
+        curr_state,
+        prev_plan,
+        plan
+      );
+
       res.status(200).json({
         success: true,
-        message: "Task plan updated successfully!",
+        message: "Task details updated successfully!",
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
         error: error.message,
-        message: "Unable to update task plan!",
+        message: "Unable to update task details!",
       });
     }
   },
@@ -355,16 +513,25 @@ module.exports = {
 
     try {
       const [result] = await db.query(
-        `UPDATE task SET task_state = '${state.todo}' WHERE task_id = ? AND task_state = '${state.open}'`,
-        [task_id]
+        `UPDATE task SET task_state = ? WHERE task_id = ? AND task_state = ?`,
+        [state.todo, task_id, state.open]
       );
 
       if (result.affectedRows === 0) {
         return res.status(404).json({
           success: false,
-          message: "Task id not found or task state is not open",
+          message: 'Task id not found or task is not the "open" state',
         });
       }
+
+      await auditLog(
+        actions.promoted,
+        req.username,
+        task_id,
+        null,
+        state.open,
+        state.todo
+      );
 
       res.status(200).json({
         success: true,
@@ -391,16 +558,25 @@ module.exports = {
 
     try {
       const [result] = await db.query(
-        `UPDATE task SET task_state = '${state.doing}' WHERE task_id = ? AND task_state = '${state.todo}'`,
-        [task_id]
+        `UPDATE task SET task_state = ? WHERE task_id = ? AND task_state = ?`,
+        [state.doing, task_id, state.todo]
       );
 
       if (result.affectedRows === 0) {
         return res.status(404).json({
           success: false,
-          message: "Task id not found or task state is not todo",
+          message: 'Task id not found or task is not in the "todo" state',
         });
       }
+
+      await auditLog(
+        actions.promoted,
+        req.username,
+        task_id,
+        null,
+        state.todo,
+        state.doing
+      );
 
       res.status(200).json({
         success: true,
@@ -427,16 +603,25 @@ module.exports = {
 
     try {
       const [result] = await db.query(
-        `UPDATE task SET task_state = '${state.done}' WHERE task_id = ? AND task_state = '${state.doing}'`,
-        [task_id]
+        `UPDATE task SET task_state = ? WHERE task_id = ? AND task_state = ?`,
+        [state.done, task_id, state.doing]
       );
 
       if (result.affectedRows === 0) {
         return res.status(404).json({
           success: false,
-          message: "Task id not found or task state is not doing",
+          message: 'Task id not found or task is not the "doing" state',
         });
       }
+
+      await auditLog(
+        actions.promoted,
+        req.username,
+        task_id,
+        null,
+        state.doing,
+        state.done
+      );
 
       res.status(200).json({
         success: true,
@@ -463,16 +648,25 @@ module.exports = {
 
     try {
       const [result] = await db.query(
-        `UPDATE task SET task_state = '${state.todo}' WHERE task_id = ? AND task_state = '${state.doing}'`,
-        [task_id]
+        `UPDATE task SET task_state = ? WHERE task_id = ? AND task_state = ?`,
+        [state.todo, task_id, state.doing]
       );
 
       if (result.affectedRows === 0) {
         return res.status(404).json({
           success: false,
-          message: "Task id not found or task state is not doing",
+          message: 'Task id not found or task is not the "doing" state',
         });
       }
+
+      await auditLog(
+        actions.demoted,
+        req.username,
+        task_id,
+        null,
+        state.doing,
+        state.todo
+      );
 
       res.status(200).json({
         success: true,
@@ -499,16 +693,25 @@ module.exports = {
 
     try {
       const [result] = await db.query(
-        `UPDATE task SET task_state = '${state.close}' WHERE task_id = ? AND task_state = '${state.done}'`,
-        [task_id]
+        `UPDATE task SET task_state = ? WHERE task_id = ? AND task_state = ?`,
+        [state.close, task_id, state.done]
       );
 
       if (result.affectedRows === 0) {
         return res.status(404).json({
           success: false,
-          message: "Task id not found or task state is not in the doing state",
+          message: 'Task id not found or task state is not in the "done" state',
         });
       }
+
+      await auditLog(
+        actions.promoted,
+        req.username,
+        task_id,
+        null,
+        state.done,
+        state.close
+      );
 
       res.status(200).json({
         success: true,
@@ -535,16 +738,25 @@ module.exports = {
 
     try {
       const [result] = await db.query(
-        `UPDATE task SET task_state = '${state.doing}' WHERE task_id = ? AND task_state = '${state.done}'`,
-        [task_id]
+        `UPDATE task SET task_state = ? WHERE task_id = ? AND task_state = ?`,
+        [state.doing, task_id, state.done]
       );
 
       if (result.affectedRows === 0) {
         return res.status(404).json({
           success: false,
-          message: "Task id not found or task state is not in done state",
+          message: 'Task id not found or task is not in "done" state',
         });
       }
+
+      await auditLog(
+        actions.demoted,
+        req.username,
+        task_id,
+        null,
+        state.done,
+        state.doing
+      );
 
       res.status(200).json({
         success: true,

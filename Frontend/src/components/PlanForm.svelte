@@ -1,6 +1,7 @@
 <script>
     import { api } from '$lib/config.js';
     import { invalidate, invalidateAll, goto } from '$app/navigation';
+    import { onMount } from 'svelte';
     import { toasts } from 'svelte-toasts';
 
     export let title = "Create Plan";
@@ -12,15 +13,20 @@
     export let name = "";
     export let startDate = "";
     export let endDate = "";
-    export let colour = "#000000";
+    export let colour;
 
     let errors = {};
 
     $: {
-        // console.log(name);
         // console.log(startDate);
         // console.log(endDate);
         // console.log(colour);
+    }
+
+    const randomHexColors = () => {
+        const arr = ["#FFFF00", "#FF6F91", "#A8E6CF", "#B3E5FC", "#FFAB40", "#D7B2E0", "#E1BEE7", "#FFCCBC", "#FF5252"];
+        const randomIndex = Math.floor(Math.random() * arr.length);
+        return arr[randomIndex];
     }
 
     const showToast = (success, messageDesc) => {
@@ -86,6 +92,11 @@
         }
     }
 
+    onMount(() => {
+        if(!colour) {
+            colour = randomHexColors();
+        }
+    })
 
 </script>
 
