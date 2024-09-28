@@ -146,7 +146,6 @@ module.exports = {
     }
   },
 
-  // check group from frontend
   // Retrieve existing user information
   getUser: async (req, res) => {
     // const { username } = req.body;
@@ -176,9 +175,25 @@ module.exports = {
           .json({ success: false, message: "User not found" });
       }
 
+      // check if user is an admin
+      const { group_names, ...userData } = result[0];
+      let isAdmin = false;
+
+      if (group_names) {
+        const group_arr = group_names.split(", ");
+        const lowercase_group_arr = group_arr.map((str) => str.toLowerCase());
+        isAdmin = lowercase_group_arr.includes("admin");
+      }
+
+      // construct data without returning the user groups
+      const data = {
+        ...userData,
+        isAdmin: isAdmin,
+      };
+
       res.status(200).json({
         success: true,
-        data: result[0],
+        data: data,
         message: "User details loaded successfully!",
       });
     } catch (error) {

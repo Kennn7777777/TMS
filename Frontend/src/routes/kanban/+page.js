@@ -2,7 +2,7 @@ import { api } from '$lib/config.js';
 import { goto } from '$app/navigation';
 import { pageStore } from '$lib/stores';
 
-const taskState = ['open', 'todo', 'doing', 'done', 'close'];
+const taskState = ['open', 'todoList', 'doing', 'done', 'close'];
 
 export const load = async ({ parent, depends }) => {
 	try {

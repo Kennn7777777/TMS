@@ -23,7 +23,8 @@ module.exports = {
       return res.status(400).json({
         success: false,
         errors: {
-          group: "Invalid group name",
+          group:
+            "Invalid group name. It can only consist of alphanumeric characters and underscores.",
         },
         message: "Unable to create group",
       });

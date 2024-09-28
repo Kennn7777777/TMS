@@ -28,19 +28,20 @@
     
     const state = {
         open: "open",
-        todo: "todo",
+        todo: "todoList",
         doing: "doing",
         done: "done",
         close: "close",
     };
 
+    // reload task detail data
     const handleReloadTaskDetail = async () => {  
         try {
             const response = await api.post("/task/getTaskDetail", { task_id: taskId });
 
             if (response.data.success) {
                 const taskData = response.data.data;
-                taskPlan = taskData.task_plan;
+                taskPlan = taskData.task_plan || "";
                 prevTaskPlan = taskPlan;
                 taskNotes = taskData.task_notes;
             }
@@ -80,6 +81,7 @@
                     if (response.data.success) {
                         displayMessage ++;
                         toastMsg = response.data.message;
+                       
                         // showToast(true, response.data.message);
                         // showModal = false;
                         // invalidate('app:rootlayout');
@@ -90,7 +92,6 @@
 
             // all states is able to update notes
             // update and log task notes
-            // issue 1: "null" or "" plan
             if (notes) {
                 const data = {
                     task_id: taskId,
@@ -133,6 +134,7 @@
         }
 
     };
+
 
     const checkDisabledPromote = () => {
        
@@ -293,7 +295,7 @@
             {/each}
         </div>
 
-        <!-- Input for Adding Notes h-1/4 -->
+        <!-- Input for adding notes -->
         <div class="h-2/6 3xl:h-1/4">
             <div class="mt-4">
                 <textarea bind:value={notes} rows="4" placeholder="Enter notes here..." class="w-full resize-none rounded-md border border-gray-300 p-2 focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50"></textarea>

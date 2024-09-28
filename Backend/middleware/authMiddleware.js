@@ -22,6 +22,24 @@ const checkgroup = async (username, groupname) => {
   }
 };
 
+const checkIsActive = async (username) => {
+  try {
+    const [user] = await db.query(
+      `
+      SELECT active FROM user WHERE username = ?`,
+      [username]
+    );
+
+    if (user[0].active === 1) {
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    return false;
+  }
+};
+
 const verifyTokenAndAuthorize = (groups = []) => {
   return async (req, res, next) => {
     const token = req.cookies.access_token;
@@ -55,15 +73,24 @@ const verifyTokenAndAuthorize = (groups = []) => {
       const username = decoded.username;
 
       //TODO: check if user is disabled
+      // if (!(await checkIsActive(username))) {
+      //   return res.status(401).json({
+      //     success: false,
+      //     code: "SOME ERROR CODE",
+      //     message:
+      //       "Your account is deactived! Please contact Admin!",
+      //   });
+      // }
 
-      // check if user is allowed to access route
+      // check if user is allowed to access route (for hardcoded routes)
+      // TODO: change error code and message
       if (groups.length > 0) {
         if (!(await checkgroup(username, groups))) {
           return res.status(401).json({
             success: false,
             code: "ERR_ADMIN",
             message:
-              "Access denied. You must be authenticated to access this resource.",
+              "Access denied. You must be authenticated to access this resource. (GROUP)",
           });
         }
       }
@@ -74,6 +101,7 @@ const verifyTokenAndAuthorize = (groups = []) => {
       // proceed to next middleware/route handler if token is valid and has the required group permission
       next();
     } catch (error) {
+      // TODO: catch error message
       return res.status(401).json({
         success: false,
         code: "ERR_AUTH",
@@ -83,4 +111,122 @@ const verifyTokenAndAuthorize = (groups = []) => {
   };
 };
 
-module.exports = verifyTokenAndAuthorize;
+// check if user is permitted to perform actions (create/promote/demote/updateNotes/updatePlan)
+// on a task within an application
+const permitTaskAction = (action = null) => {
+  return async (req, res, next) => {
+    if (!action) {
+      const { task_id } = req.body;
+
+      if (!task_id) {
+        return res.status(400).json({
+          success: false,
+          message: "Task id is required",
+        });
+      }
+
+      try {
+        // get the current state and app_acronym of the task
+        const [task] = await db.query(
+          `SELECT task_state, task_app_acronym FROM task WHERE task_id = ?`,
+          [task_id]
+        );
+
+        const task_state = task[0].task_state;
+        const app_acronym = task[0].task_app_acronym;
+        const app_permit_state = `app_permit_${task_state}`;
+
+        // get the group name that is permitted for this current state
+        const [group_name] = await db.query(
+          `SELECT ${app_permit_state} FROM application WHERE app_acronym = ?`,
+          [app_acronym]
+        );
+
+        const permit_group = group_name[0][app_permit_state];
+        console.log(task_state);
+        console.log(app_acronym);
+        console.log(app_permit_state);
+        console.log(permit_group);
+
+        if (permit_group) {
+          // check if user is permitted to perform the actions
+          if (!(await checkgroup(req.username, [permit_group]))) {
+            return res.status(401).json({
+              success: false,
+              code: "SOME ERROR CODE",
+              message:
+                "Access denied. You do not have the permission to access this resource.",
+            });
+          }
+        } else {
+          // do not let user perform any actions
+          return res.status(401).json({
+            success: false,
+            code: "SOME ERROR CODE",
+            message:
+              "Access denied. You do not have the permission to access this resource. (NULL)",
+          });
+        }
+
+        next();
+      } catch (error) {
+        // TODO: handle errors
+        console.log(error);
+      }
+    } else if (action === "create") {
+      console.log("CREATE ACTION");
+      const { app_acronym } = req.body;
+
+      if (!app_acronym) {
+        return res.status(400).json({
+          success: false,
+          message: "App Acronym is required",
+        });
+      }
+      try {
+        const [group_name] = await db.query(
+          `SELECT app_permit_create FROM application WHERE app_acronym = ?`,
+          [app_acronym]
+        );
+
+        const permit_group = group_name[0].app_permit_create;
+        console.log(permit_group);
+
+        if (permit_group) {
+          // check if user is permitted to perform the actions
+          if (!(await checkgroup(req.username, [permit_group]))) {
+            return res.status(401).json({
+              success: false,
+              code: "SOME ERROR CODE",
+              message:
+                "Access denied. You do not have the permission to access this resource.",
+            });
+          }
+        } else {
+          // do not let user perform any actions
+          return res.status(401).json({
+            success: false,
+            code: "SOME ERROR CODE",
+            message:
+              "Access denied. You do not have the permission to access this resource. (NULL)",
+          });
+        }
+
+        next();
+      } catch (error) {
+        // TODO: handle errors
+        console.log(error);
+      }
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid action",
+      });
+    }
+  };
+};
+
+module.exports = {
+  default: verifyTokenAndAuthorize,
+  permitTaskAction,
+};

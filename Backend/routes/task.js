@@ -1,6 +1,9 @@
 const express = require("express");
 const taskController = require("../controllers/taskController");
-const verifyTokenAndAuthorize = require("../middleware/authMiddleware");
+const {
+  default: verifyTokenAndAuthorize,
+  permitTaskAction,
+} = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -8,19 +11,36 @@ const router = express.Router();
 router.post(
   "/createTask",
   verifyTokenAndAuthorize(),
+  permitTaskAction("create"),
   taskController.createTask
 );
+
 // retrieve all tasks in a particular state
-router.post("/getTasksByState", taskController.getTasksByState);
+router.post(
+  "/getTasksByState",
+  verifyTokenAndAuthorize(),
+  taskController.getTasksByState
+);
+
 // retrieve all tasks under a particular application
-router.post("/getAllTasks", taskController.getAllTasks);
+router.post(
+  "/getAllTasks",
+  verifyTokenAndAuthorize(),
+  taskController.getAllTasks
+);
+
 // retreive a particular task details by id
-router.post("/getTaskDetail", taskController.getTaskDetail);
+router.post(
+  "/getTaskDetail",
+  verifyTokenAndAuthorize(),
+  taskController.getTaskDetail
+);
 
 // update task notes
 router.patch(
   "/updateTaskNotes",
   verifyTokenAndAuthorize(),
+  permitTaskAction(),
   taskController.updateTaskNotes
 );
 
@@ -28,6 +48,7 @@ router.patch(
 router.patch(
   "/updateTaskPlan",
   verifyTokenAndAuthorize(),
+  permitTaskAction(),
   taskController.updateTaskPlan
 );
 
@@ -35,6 +56,7 @@ router.patch(
 router.patch(
   "/promoteTask2TodoList",
   verifyTokenAndAuthorize(),
+  permitTaskAction(),
   taskController.promoteTask2TodoList
 );
 
@@ -42,6 +64,7 @@ router.patch(
 router.patch(
   "/promoteTask2Doing",
   verifyTokenAndAuthorize(),
+  permitTaskAction(),
   taskController.promoteTask2Doing
 );
 
@@ -49,6 +72,7 @@ router.patch(
 router.patch(
   "/promoteTask2Done",
   verifyTokenAndAuthorize(),
+  permitTaskAction(),
   taskController.promoteTask2Done
 );
 
@@ -56,6 +80,7 @@ router.patch(
 router.patch(
   "/demoteTask2TodoList",
   verifyTokenAndAuthorize(),
+  permitTaskAction(),
   taskController.demoteTask2TodoList
 );
 
@@ -63,6 +88,7 @@ router.patch(
 router.patch(
   "/promoteTask2Close",
   verifyTokenAndAuthorize(),
+  permitTaskAction(),
   taskController.promoteTask2Close
 );
 
@@ -70,6 +96,7 @@ router.patch(
 router.patch(
   "/demoteTask2Doing",
   verifyTokenAndAuthorize(),
+  permitTaskAction(),
   taskController.demoteTask2Doing
 );
 

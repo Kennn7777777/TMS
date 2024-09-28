@@ -1,6 +1,8 @@
 const express = require("express");
 const groupController = require("../controllers/groupController");
-const verifyTokenAndAuthorize = require("../middleware/authMiddleware");
+const {
+  default: verifyTokenAndAuthorize,
+} = require("../middleware/authMiddleware");
 
 const router = express.Router();
 

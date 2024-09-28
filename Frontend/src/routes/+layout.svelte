@@ -6,13 +6,13 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/config.js';
 
-
 	export let data;
 
 	let title = 'Home';
 	let showNavbar = true;
 	$: currUser = data.userData;
-	$: isAdmin = currUser?.group_names?.includes('admin');
+	$: isAdmin = currUser?.isAdmin;
+	// $: isAdmin = currUser?.group_names?.includes('admin');
 
 	$: {
 		showNavbar = !($page.url.pathname === '/login');

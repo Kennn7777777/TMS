@@ -27,7 +27,8 @@ export const load = async ({ depends, parent }) => {
 		const { userData } = await parent();
 		depends('app:admin');
 
-		if (userData.group_names.includes('admin')) {
+		// if (userData.group_names.includes('admin')) {
+		if (userData.isAdmin) {
 			const requests = [api.get('/users/getAllUsers'), api.get('/group/getAllGroups')];
 
 			const [usersRes, groupsRes] = await Promise.all(requests);

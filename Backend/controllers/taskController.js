@@ -5,7 +5,7 @@ const cookieParser = require("cookie-parser");
 
 const state = {
   open: "open",
-  todo: "todo",
+  todo: "todoList",
   doing: "doing",
   done: "done",
   close: "close",
@@ -42,7 +42,7 @@ const getCurrDateTime = () => {
   return `${day}-${month}-${year} ${hours}:${mins}:${secs}`;
 };
 
-// audit trail in contains username, current state, date & timestamp, notes
+// audit trail will log username, current state, date & timestamp, notes
 const auditLog = async (
   action,
   username,
@@ -85,10 +85,16 @@ const auditLog = async (
 
   // update plan action
   if (action === actions.plan) {
-    if (prev_plan) {
+    if (prev_plan && curr_plan) {
       actionStr += `has change task plan from "${prev_plan}" to "${curr_plan}".<br/>`;
     } else {
-      actionStr += `has change task plan to "${curr_plan}".<br/>`;
+      if (!prev_plan) {
+        actionStr += `has updated task plan to "${curr_plan}".<br/>`;
+      }
+
+      if (!curr_plan) {
+        actionStr += `has remove plan from task.<br/>`;
+      }
     }
   }
 
@@ -116,7 +122,7 @@ const auditLog = async (
 
     let updated_notes;
 
-    // append delimited and current notes to existing notes
+    // append delimiter and current notes to existing notes
     if (existing_notes[0].task_notes) {
       updated_notes = `${existing_notes[0].task_notes}§${logStr}`;
     } else {
@@ -130,6 +136,19 @@ const auditLog = async (
     ]);
   } catch (error) {
     // TODO: handle errors
+    throw error;
+  }
+};
+
+// update the owner of the task if user performs an action
+const updateTaskOwner = async (username, task_id) => {
+  try {
+    await db.query(`UPDATE task SET task_owner = ? WHERE task_id = ?`, [
+      username,
+      task_id,
+    ]);
+  } catch (error) {
+    // TODO: handle error?
     throw error;
   }
 };
@@ -381,6 +400,8 @@ module.exports = {
         });
       }
 
+      // check current task state
+
       res.status(200).json({
         success: true,
         data: result[0],
@@ -406,31 +427,7 @@ module.exports = {
     }
 
     try {
-      // // retrieve existing notes
-      // const [existing_notes] = await db.query(
-      //   `SELECT task_notes FROM task WHERE task_id = ?`,
-      //   [task_id]
-      // );
-
-      // if (existing_notes.length === 0) {
-      //   return res.status(404).json({
-      //     success: false,
-      //     message: "Task id not found",
-      //   });
-      // }
-
-      // let updated_notes = notes;
-
-      // // append delimited and current notes to existing notes
-      // if (existing_notes[0].task_notes) {
-      //   updated_notes = `${existing_notes[0].task_notes}§${notes}`;
-      // }
-
-      // // update db with the updated notes
-      // const [result] = await db.query(
-      //   `UPDATE task SET task_notes = ? WHERE task_id = ?`,
-      //   [updated_notes, task_id]
-      // );
+      await updateTaskOwner(req.username, task_id);
 
       await auditLog(
         actions.notes,
@@ -476,6 +473,8 @@ module.exports = {
           message: "Task id not found",
         });
       }
+
+      await updateTaskOwner(req.username, task_id);
 
       await auditLog(
         actions.plan,
@@ -524,6 +523,8 @@ module.exports = {
         });
       }
 
+      await updateTaskOwner(req.username, task_id);
+
       await auditLog(
         actions.promoted,
         req.username,
@@ -568,6 +569,8 @@ module.exports = {
           message: 'Task id not found or task is not in the "todo" state',
         });
       }
+
+      await updateTaskOwner(req.username, task_id);
 
       await auditLog(
         actions.promoted,
@@ -614,6 +617,8 @@ module.exports = {
         });
       }
 
+      await updateTaskOwner(req.username, task_id);
+
       await auditLog(
         actions.promoted,
         req.username,
@@ -658,6 +663,8 @@ module.exports = {
           message: 'Task id not found or task is not the "doing" state',
         });
       }
+
+      await updateTaskOwner(req.username, task_id);
 
       await auditLog(
         actions.demoted,
@@ -704,6 +711,8 @@ module.exports = {
         });
       }
 
+      await updateTaskOwner(req.username, task_id);
+
       await auditLog(
         actions.promoted,
         req.username,
@@ -748,6 +757,8 @@ module.exports = {
           message: 'Task id not found or task is not in "done" state',
         });
       }
+
+      await updateTaskOwner(req.username, task_id);
 
       await auditLog(
         actions.demoted,
