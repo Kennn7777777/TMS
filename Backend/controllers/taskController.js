@@ -1,8 +1,19 @@
 const db = require("../config/db");
-const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const { checkgroup } = require("../middleware/authMiddleware");
+
+const nodemailer = require("nodemailer");
+
+const transport = nodemailer.createTransport({
+  host: process.env.MAIL_HOST,
+  port: process.env.MAIL_PORT,
+  secure: false,
+  auth: {
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASSWORD,
+  },
+});
 
 const state = {
   open: "open",
@@ -18,6 +29,42 @@ const actions = {
   demoted: "demoted",
   notes: "notes",
   plan: "plan",
+};
+
+// email to notify the Project lead
+const emailPL = async (task_id) => {
+  try {
+    // retrieve task name and user email
+    const [result] = await db.query(
+      `SELECT t.task_name, u.email FROM task t JOIN user u ON t.task_owner = u.username 
+      WHERE task_id = ?`,
+      [task_id]
+    );
+
+    // setup email data
+    const recipients = result[0]?.email || "tmstest@mailinator.com";
+    const task_name = result[0]?.task_name;
+    const subject = "Task Completion Notification for Approval";
+    const message = `This is to inform you that the task <${task_name}> has been completed. It is now ready for your review and approval.`;
+
+    transport
+      .sendMail({
+        from: "no-reply@example.com",
+        to: recipients,
+        subject: subject,
+        text: message,
+        html: message,
+      })
+      .then((info) => {
+        console.log("email sent");
+      })
+      .catch((error) => {
+        console.log("email sent error");
+        throw error;
+      });
+  } catch (error) {
+    throw error;
+  }
 };
 
 // get current date in the format of DD-MM-YYYY
@@ -670,6 +717,9 @@ module.exports = {
         state.doing,
         state.done
       );
+
+      // send email to notify Project Lead (creator)
+      await emailPL(task_id);
 
       res.status(200).json({
         success: true,
