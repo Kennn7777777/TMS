@@ -13,6 +13,7 @@
     export let data;
     $: apps = data.apps;
     $: groups = data.groups;
+    $: isPL = data.userData?.isPL;
 
     // for create app modal
     let showAppModal = false;
@@ -52,13 +53,15 @@
     <div class="min-h-full mx-auto max-w-[90rem]">
         <div class="flex flex-col mt-5">
             <div class="flex justify-end">
-                <button 
-                    on:click={() => {
-                        showAppModal = true;
-                    }} 
-                    class="px-4 py-2 text-base font-semibold text-white bg-primary rounded-lg shadow-md">
-                        Create app
-                </button>
+                {#if isPL}
+                    <button 
+                        on:click={() => {
+                            showAppModal = true;
+                        }} 
+                        class="px-4 py-2 text-base font-semibold text-white bg-primary rounded-lg shadow-md">
+                            Create app
+                    </button>
+                {/if}
             </div>
             
             <!-- display application cards -->

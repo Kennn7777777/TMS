@@ -136,7 +136,7 @@ const permitTaskAction = (action = null) => {
         const app_acronym = task[0].task_app_acronym;
         const app_permit_state = `app_permit_${task_state}`;
 
-        // get the group name that is permitted for this current state
+        // get permitted group for this current state
         const [group_name] = await db.query(
           `SELECT ${app_permit_state} FROM application WHERE app_acronym = ?`,
           [app_acronym]
@@ -229,4 +229,5 @@ const permitTaskAction = (action = null) => {
 module.exports = {
   default: verifyTokenAndAuthorize,
   permitTaskAction,
+  checkgroup,
 };

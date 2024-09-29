@@ -29,16 +29,17 @@ export const load = async ({ parent, depends }) => {
 		}
 
 		requests.push(api.post('/plan/getAllPlans', { app_acronym: app_acronym }));
+		requests.push(api.post('/task/getAppPermitCreate', { app_acronym: app_acronym }));
 
-		const [open, todo, doing, done, close, planReq] = await Promise.all(requests);
+		const [open, todo, doing, done, close, planReq, isPermitCreateReq] =
+			await Promise.all(requests);
 		const openTasks = open.data.data;
 		const todoTasks = todo.data.data;
 		const doingTasks = doing.data.data;
 		const doneTasks = done.data.data;
 		const closeTasks = close.data.data;
 		const plans = planReq.data.data;
-
-		// console.log('plans: ' + plans);
+		const isPermitCreate = isPermitCreateReq.data.isPermitCreate;
 
 		return {
 			openTasks,
@@ -48,7 +49,8 @@ export const load = async ({ parent, depends }) => {
 			closeTasks,
 			app_acronym,
 			plans,
-			username: userData.username
+			isPermitCreate,
+			userData
 		};
 	} catch (error) {
 		console.log(error);

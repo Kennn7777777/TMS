@@ -12,12 +12,12 @@
     export let taskOwner;
     export let taskCreatedDate;
     export let taskNotes; // displayed notes in field
-    export let plans; // for dropdown
-
+    export let plans; // to populate plan dropdown
+    export let allowActions; // array of allowed actions
 
     let prevTaskPlan = taskPlan;
-    let notes = ""; // entered notes
-    
+    let notes = ""; // user entered notes
+    let notesArea; // for scrolling the displayed notes
 
     $: displayNotes = taskNotes.split("§");
     $: {
@@ -34,6 +34,14 @@
         close: "close",
     };
 
+    const actions = {
+        create: "create",
+        promoted: "promoted",
+        demoted: "demoted",
+        notes: "notes",
+        plan: "plan",
+    };
+
     // reload task detail data
     const handleReloadTaskDetail = async () => {  
         try {
@@ -44,6 +52,13 @@
                 taskPlan = taskData.task_plan || "";
                 prevTaskPlan = taskPlan;
                 taskNotes = taskData.task_notes;
+                
+                if (notesArea) {
+                    requestAnimationFrame(() => {
+                        notesArea.scrollTop = notesArea.scrollHeight;
+                    });
+                }
+                
             }
 
         } catch (error) {
@@ -60,35 +75,55 @@
 		}
 	};
 
+    const checkDisabledPlan = () => {
+        return !allowActions.includes(actions.plan);
+    }
+
+    const checkDisabledNotes= () => {
+        return !allowActions.includes(actions.notes);
+    }
+
+    const checkDisabledSave = () => {
+         return !(allowActions.includes(actions.plan) || allowActions.includes(actions.notes))
+    }
+
+    const checkDisabledPromote = () => {
+        return !allowActions.includes(actions.promoted);
+    }
+
+    const checkDisabledDemote = () => {
+        return !allowActions.includes(actions.demoted);
+    }
+
     const handleSaveChanges = async () => {
         try {
             let displayMessage = 0;
             let toastMsg = "";
 
             // only check update task plan for open(PM) and done(PL) state 
-            if (taskState === state.open || taskState === state.done) {
-                // only update and log task if there is a change in the plan
-                if (taskPlan !== prevTaskPlan) {
-                    const data = {
-                        task_id: taskId,
-                        prev_plan: prevTaskPlan,
-                        plan: taskPlan || null,
-                        curr_state: taskState
-                    }
+            // if (taskState === state.open || taskState === state.done) {
+            // only update and log task if there is a change in the plan
+            if (taskPlan !== prevTaskPlan) {
+                const data = {
+                    task_id: taskId,
+                    prev_plan: prevTaskPlan,
+                    plan: taskPlan || null,
+                    curr_state: taskState
+                }
 
-                    const response = await api.patch("/task/updateTaskPlan", data);
+                const response = await api.patch("/task/updateTaskPlan", data);
 
-                    if (response.data.success) {
-                        displayMessage ++;
-                        toastMsg = response.data.message;
-                       
-                        // showToast(true, response.data.message);
-                        // showModal = false;
-                        // invalidate('app:rootlayout');
-                        // invalidate('app:kanban');
-                    }
+                if (response.data.success) {
+                    displayMessage ++;
+                    toastMsg = response.data.message;
+                    
+                    // showToast(true, response.data.message);
+                    // showModal = false;
+                    // invalidate('app:rootlayout');
+                    // invalidate('app:kanban');
                 }
             }
+            // }
 
             // all states is able to update notes
             // update and log task notes
@@ -135,34 +170,13 @@
 
     };
 
-
-    const checkDisabledPromote = () => {
-       
-        if (taskState === state.close) {
-            return true;
-        }
-
-        return false;
-    }
-
-    const checkDisabledDemote = () => {
-        if (taskState === state.open) {
-            return true;
-        }
-
-        if (taskState === state.close) {
-            return true;
-        }
-
-        return false;
-    }
-
     // save => plan (open, done) and notes (all state except close?)
     // update plan in [open](PM) [done](PL) 
     // promote/demote => plan and notes + task state change
-    // created, promote, demote tasks
     const handleDemote = async () => {
         try {
+            await handleSaveChanges();
+
             let apiStr;
 
             // DEV (give up)
@@ -184,6 +198,7 @@
                 invalidate('app:rootlayout');
                 invalidate('app:kanban');
             }
+
         } catch (error) {
             console.log(error);
         }
@@ -192,6 +207,8 @@
     const handlePromote = async () => {
         // TODO: check which group is able to perform the actions in different states
         try {
+            await handleSaveChanges();
+
             let apiStr;
 
             // PM (release task)
@@ -214,10 +231,6 @@
                 apiStr = "promoteTask2Close";
             }
 
-            if (taskState === state.close) {
-
-            }
-
             const response = await api.patch(`/task/${apiStr}`, {task_id: taskId});
                 
             if (response.data.success) {
@@ -226,9 +239,10 @@
                 document.body.classList.remove('overflow-hidden');
                 invalidate('app:rootlayout');
                 invalidate('app:kanban');
-            }
+            }  
 
         } catch (error) {
+            // TODO: handle error
             console.log(error);
         }
         
@@ -237,7 +251,7 @@
 </script>
 
 <!-- Main Container -->
-<!-- min-h-[95vh] -->
+<!-- max-h-[95vh] -->
 <div class="h-[95vh] min-w-[90vw] bg-gray-100 flex">
     <!-- Task Details Section (Left Side) -->
     <div class="w-1/4 border-r border-gray-200 bg-white p-6 h-full">
@@ -263,7 +277,7 @@
             <label for="plan" class="text-base font-medium text-gray-700">Plan:</label>
             
             <select 
-                disabled={taskState !== state.open && taskState !== state.done}
+                disabled={checkDisabledPlan()}
                 bind:value={taskPlan} id="plan" 
                     class="px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed">
                     <option value="">Select plan</option>
@@ -288,8 +302,9 @@
         <label for="notes" class="block text-sm font-semibold mb-2" disabled>Notes:</label>
 
         <!-- Notes Field -->
-        <div class="h-4/6 3xl:h-3/4 overflow-y-auto rounded-md border border-gray-300 bg-gray-100 text-gray-800 p-4">
-            <!-- <p class="text-center text-gray-400">Notes Field</p> -->
+        <div
+            bind:this={notesArea} 
+            class="h-4/6 3xl:h-3/4 overflow-y-auto rounded-md border border-gray-300 bg-gray-100 text-gray-800 p-4">
             {#each displayNotes as note} 
                 <p>{@html note}</p><br />
             {/each}
@@ -298,7 +313,11 @@
         <!-- Input for adding notes -->
         <div class="h-2/6 3xl:h-1/4">
             <div class="mt-4">
-                <textarea bind:value={notes} rows="4" placeholder="Enter notes here..." class="w-full resize-none rounded-md border border-gray-300 p-2 focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50"></textarea>
+                <textarea 
+                disabled={checkDisabledNotes()}
+                bind:value={notes} rows="4" placeholder="Enter notes here..." 
+                class="w-full resize-none rounded-md border border-gray-300 p-2 focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50
+                disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"></textarea>
             </div>
 
             <!-- Action Buttons -->
@@ -308,12 +327,16 @@
                         showModal = false;
                         document.body.classList.remove('overflow-hidden');
                     }} 
-                    class="rounded-md bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">Close
+                    
+                    class="rounded-md bg-white border-2 border-primary px-6 py-2 text-primary font-bold hover:bg-primary hover:text-white ">Close
                 </button>
+                <!-- bg-gray-200 text-gray-700 hover:bg-gray-300-->
                 
-                <button 
+                <button
+                    disabled={checkDisabledSave()}
                     on:click={handleSaveChanges}
-                    class="rounded-md bg-black px-4 py-2 text-white hover:bg-gray-800">Save Changes
+                    class="rounded-md bg-black px-4 py-2 text-white hover:bg-gray-800
+                    disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500">Save Changes
                 </button>
                 
                 <button

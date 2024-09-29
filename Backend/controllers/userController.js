@@ -175,20 +175,26 @@ module.exports = {
           .json({ success: false, message: "User not found" });
       }
 
-      // check if user is an admin
+      // check if user is an admin, PL, PM
       const { group_names, ...userData } = result[0];
       let isAdmin = false;
+      let isPL = false;
+      let isPM = false;
 
       if (group_names) {
         const group_arr = group_names.split(", ");
         const lowercase_group_arr = group_arr.map((str) => str.toLowerCase());
         isAdmin = lowercase_group_arr.includes("admin");
+        isPL = lowercase_group_arr.includes("pl");
+        isPM = lowercase_group_arr.includes("pm");
       }
 
       // construct data without returning the user groups
       const data = {
         ...userData,
         isAdmin: isAdmin,
+        isPL: isPL,
+        isPM: isPM,
       };
 
       res.status(200).json({

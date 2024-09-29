@@ -2,7 +2,7 @@ import { api } from '$lib/config.js';
 
 export const load = async ({ depends, parent }) => {
 	try {
-		await parent();
+		const { userData } = await parent();
 		depends('app:applist');
 		console.log('LOAD ALL APPS');
 
@@ -12,7 +12,9 @@ export const load = async ({ depends, parent }) => {
 		const apps = appsRes.data.data;
 		const groups = groupsRes.data.data;
 
-		return { apps, groups };
+		console.log(userData);
+
+		return { apps, groups, userData };
 
 		// const response = await api.get('/app/getAllApps');
 

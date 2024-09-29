@@ -2,6 +2,7 @@ const db = require("../config/db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
+const { checkgroup } = require("../middleware/authMiddleware");
 
 const state = {
   open: "open",
@@ -136,7 +137,8 @@ const auditLog = async (
     ]);
   } catch (error) {
     // TODO: handle errors
-    throw error;
+    // throw error;
+    console.log(error);
   }
 };
 
@@ -149,7 +151,8 @@ const updateTaskOwner = async (username, task_id) => {
     ]);
   } catch (error) {
     // TODO: handle error?
-    throw error;
+    // throw error;
+    console.log(error);
   }
 };
 
@@ -400,11 +403,51 @@ module.exports = {
         });
       }
 
-      // check current task state
+      // get current task state
+      const task_state = result[0].task_state;
+      const allowActions = [];
+
+      if (task_state !== state.close) {
+        const app_acronym = result[0].task_app_acronym;
+        const app_permit_state = `app_permit_${task_state}`;
+
+        // get permitted group for this current state
+        const [group_name] = await db.query(
+          `SELECT ${app_permit_state} FROM application WHERE app_acronym = ?`,
+          [app_acronym]
+        );
+
+        const permit_group = group_name[0][app_permit_state];
+
+        if (permit_group) {
+          // user is permitted to perform the actions
+          if (await checkgroup(req.username, [permit_group])) {
+            if (task_state === state.open) {
+              allowActions.push(actions.promoted, actions.plan, actions.notes);
+            } else if (task_state === state.todo) {
+              allowActions.push(actions.promoted, actions.notes);
+            } else if (task_state === state.doing) {
+              allowActions.push(
+                actions.demoted,
+                actions.promoted,
+                actions.notes
+              );
+            } else if (task_state === state.done) {
+              allowActions.push(
+                actions.demoted,
+                actions.promoted,
+                actions.plan,
+                actions.notes
+              );
+            }
+          }
+        }
+      }
 
       res.status(200).json({
         success: true,
         data: result[0],
+        allowActions: allowActions,
         message: "Task details retrieved successfully!",
       });
     } catch (error) {
@@ -778,6 +821,49 @@ module.exports = {
         success: false,
         error: error.message,
         message: "Unable to update task state!",
+      });
+    }
+  },
+
+  getAppPermitCreate: async (req, res) => {
+    const { app_acronym } = req.body;
+
+    if (!app_acronym) {
+      return res.status(400).json({
+        success: false,
+        message: "App acronym is required",
+      });
+    }
+
+    try {
+      const [group_name] = await db.query(
+        `SELECT app_permit_create FROM application WHERE app_acronym = ?
+        `,
+        [app_acronym]
+      );
+
+      const permit_group = group_name[0].app_permit_create;
+
+      if (permit_group) {
+        if (await checkgroup(req.username, [permit_group])) {
+          return res.status(200).json({
+            success: true,
+            isPermitCreate: true,
+            message: "Retrieve app permit group successfully!",
+          });
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        isPermitCreate: false,
+        message: "Retrieve app permit group successfully!",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        message: "Unable to retrieve app permit group!",
       });
     }
   },

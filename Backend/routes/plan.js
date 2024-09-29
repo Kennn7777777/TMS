@@ -8,12 +8,12 @@ const router = express.Router();
 
 router.post(
   "/createPlan",
-  verifyTokenAndAuthorize(["PM"]),
+  verifyTokenAndAuthorize(["PM", "admin"]),
   planController.createPlan
 );
 router.patch(
   "/updatePlan",
-  verifyTokenAndAuthorize(["PM"]),
+  verifyTokenAndAuthorize(["PM", "admin"]),
   planController.updatePlan
 );
 router.post("/getPlan", verifyTokenAndAuthorize(), planController.getPlan);

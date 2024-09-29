@@ -8,13 +8,13 @@ const router = express.Router();
 
 router.post(
   "/createApp",
-  verifyTokenAndAuthorize(["PL"]),
+  verifyTokenAndAuthorize(["PL", "admin"]),
   appController.createApp
 );
 
 router.patch(
   "/updateApp",
-  verifyTokenAndAuthorize(["PL"]),
+  verifyTokenAndAuthorize(["PL", "admin"]),
   appController.updateApp
 );
 

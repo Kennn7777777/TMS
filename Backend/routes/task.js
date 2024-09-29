@@ -100,5 +100,12 @@ router.patch(
   taskController.demoteTask2Doing
 );
 
+// retrieve app_permit_create
+router.post(
+  "/getAppPermitCreate",
+  verifyTokenAndAuthorize(),
+  taskController.getAppPermitCreate
+);
+
 // default export
 module.exports = router;

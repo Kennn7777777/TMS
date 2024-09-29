@@ -2,7 +2,7 @@
 	export let items = []; // Array of items for dropdown
 	export let selectedItems = []; // Preselected items
 	export let label = 'Select Items'; // Default label for the dropdown button
-
+	export let username = "";
 	export let isOpen = false;
 
 	const toggleDropdown = () => {
@@ -54,6 +54,7 @@
 				{#each items as item}
 					<label class="flex items-center py-1">
 						<input
+							disabled={item.group_name === "admin" && username === "admin"}
 							type="checkbox"
 							checked={selectedItems.includes(item.group_id)}
 							on:change={(event) => handleCheckbox(event, item.group_id)}

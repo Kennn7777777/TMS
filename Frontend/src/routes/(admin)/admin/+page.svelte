@@ -328,6 +328,7 @@
 											label="Select Groups"
 											items={groups}
 											bind:selectedItems={selectedGroups}
+											username={user.username}
 										/>
 									{:else}
 										{user.group_names || '-'}
@@ -343,12 +344,12 @@
 											on:click={() => handleSaveEdit(user)}>Save</button
 										>
 									{:else}
-										{#if user.username !== "admin"}
+										<!-- {#if user.username !== "admin"} -->
 										<button
 											class="text-indigo-600 hover:text-indigo-900"
 											on:click={() => handleStartEdit(user)}>Edit</button
 										>
-										{/if}
+										<!-- {/if} -->
 									{/if}
 								</td>
 							</tr>

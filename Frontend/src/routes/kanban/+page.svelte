@@ -17,8 +17,10 @@
     $: doneTasks = data.doneTasks;
     $: closeTasks = data.closeTasks;
     $: app_acronym = data.app_acronym;
-    $: username = data.username;
+    $: username = data.userData.username;
     $: plans = data.plans;
+    $: isPM = data.userData.isPM;
+    $: isPermitCreate = data.isPermitCreate;
 
     // popup modals
     let showTaskModal = false;
@@ -28,10 +30,7 @@
 
     let editData = {};
     let taskData = {};
-
-    $: {
-        console.log(openTasks);
-    }
+    let allowActions = [];
 
     const handleEditPlan = async (plan_name) => {
         try {
@@ -59,6 +58,7 @@
 
             if (response.data.success) {
                 taskData = response.data.data;
+                allowActions = response.data.allowActions;
                 console.log(taskData);
                 showTaskDetail = true;
                 document.body.classList.add('overflow-hidden');
@@ -74,55 +74,58 @@
 
 <div class="w-full relative">
     <div class="min-h-full bg-gray-100 p-4">
-        <!-- TODO: display only to those authorized -->
         <div class="flex items-center justify-end mb-2">
-            <button
-                on:click={() => {
-                    showTaskModal = true;
-                }}
-                class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
-                >Create Task</button
-            >
+            {#if isPermitCreate}
+                <button
+                    on:click={() => {
+                        showTaskModal = true;
+                    }}
+                    class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
+                    >Create Task</button
+                >
+            {/if}
             
-            <div class="group relative cursor-pointer py-2">
-                <div class="relative ml-3">
-                    <div>
-                        <button
-                            type="button"
-                            class="relative flex rounded-md bg-primary px-10 py-2 text-sm font-medium text-white hover:bg-blue-600"
-                            id="user-menu-button"
-                            aria-expanded="false"
-                            aria-haspopup="true"
-                        >
-                            <span class="absolute -inset-1.5"></span>
-                            <span class="sr-only">Open user menu</span>
-                            Plan
-                        </button>
+            {#if isPM}
+                <div class="group relative cursor-pointer py-2">
+                    <div class="relative ml-3">
+                        <div>
+                            <button
+                                type="button"
+                                class="relative flex rounded-md bg-primary px-10 py-2 text-sm font-medium text-white hover:bg-blue-600"
+                                id="user-menu-button"
+                                aria-expanded="false"
+                                aria-haspopup="true"
+                            >
+                                <span class="absolute -inset-1.5"></span>
+                                <span class="sr-only">Open user menu</span>
+                                Plan
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- plan dropdown menu -->
+                    <div
+                        class="invisible absolute mt-2 right-0 z-[99] flex flex-col bg-gray-100 px-4 py-1 text-gray-800 shadow-xl group-hover:visible items-start"
+                    >
+                        {#each plans as {plan_mvp_name}(plan_mvp_name)}
+                            <button 
+                                on:click={() => handleEditPlan(plan_mvp_name)}
+                                class="my-2 w-full text-start border-b border-gray-100 py-1 font-semibold text-gray-500 hover:text-black md:mx-2">
+                                {plan_mvp_name}
+                            </button>   
+                        {/each}
+
+                        <!-- create new plan -->
+                        <button 
+                            on:click={() => {
+                                showPlanModal = true;
+                            }}
+                            class="my-2 text-nowrap border-b border-gray-100 py-1 font-semibold text-gray-500 hover:text-black md:mx-2">
+                            Create new Plan
+                        </button>          
                     </div>
                 </div>
-
-                <!-- plan dropdown menu -->
-                <div
-                    class="invisible absolute mt-2 right-0 z-[99] flex flex-col bg-gray-100 px-4 py-1 text-gray-800 shadow-xl group-hover:visible items-start"
-                >
-                    {#each plans as {plan_mvp_name}(plan_mvp_name)}
-                        <button 
-                            on:click={() => handleEditPlan(plan_mvp_name)}
-                            class="my-2 w-full text-start border-b border-gray-100 py-1 font-semibold text-gray-500 hover:text-black md:mx-2">
-                            {plan_mvp_name}
-                        </button>   
-                    {/each}
-
-                    <!-- create new plan -->
-                    <button 
-                        on:click={() => {
-                            showPlanModal = true;
-                        }}
-                        class="my-2 text-nowrap border-b border-gray-100 py-1 font-semibold text-gray-500 hover:text-black md:mx-2">
-                        Create new Plan
-                    </button>          
-                </div>
-            </div>
+            {/if}
             
         </div>
 
@@ -231,36 +234,40 @@
 
     <!-- TODO: only display to authorized groups -->
     <!-- Task Create Modal -->
-    <Modal showModal={showTaskModal}>
-        <TaskForm
-            acronym={app_acronym}  
-            username={username}
-            plans={plans}
-            bind:showModal={showTaskModal}
-        />
-    </Modal>
+    {#if isPermitCreate}
+        <Modal showModal={showTaskModal}>
+            <TaskForm
+                acronym={app_acronym}  
+                username={username}
+                plans={plans}
+                bind:showModal={showTaskModal}
+            />
+        </Modal>
+    {/if}
 
     <!-- Plan Create Modal -->
-    <Modal showModal={showPlanModal}>
-        <PlanForm
-            app_acronym={app_acronym}
-            bind:showModal={showPlanModal}
-        />
-    </Modal>
+    {#if isPM}
+        <Modal showModal={showPlanModal}>
+            <PlanForm
+                app_acronym={app_acronym}
+                bind:showModal={showPlanModal}
+            />
+        </Modal>
 
-    <!-- Plan Edit Modal -->
-    <Modal showModal={showEditPlanModal}>
-        <PlanForm
-            title={"Edit Plan"}
-            app_acronym={app_acronym}
-            name={editData.plan_mvp_name}
-            startDate={editData.plan_startDate}
-            endDate={editData.plan_endDate}
-            colour={`#${editData.plan_colour}`}
-            isEdit={true}
-            bind:showModal={showEditPlanModal}
-        />
-    </Modal>
+        <!-- Plan Edit Modal -->
+        <Modal showModal={showEditPlanModal}>
+            <PlanForm
+                title={"Edit Plan"}
+                app_acronym={app_acronym}
+                name={editData.plan_mvp_name}
+                startDate={editData.plan_startDate}
+                endDate={editData.plan_endDate}
+                colour={`#${editData.plan_colour}`}
+                isEdit={true}
+                bind:showModal={showEditPlanModal}
+            />
+        </Modal>
+    {/if}
 
     <!-- Task details Modal -->
    <Modal showModal={showTaskDetail}>
@@ -275,6 +282,7 @@
             taskCreatedDate={taskData.task_createdDate}
             taskNotes={taskData.task_notes ??= ""}
             plans={plans}
+            allowActions={allowActions}
             bind:showModal={showTaskDetail}/>
    </Modal>
 </div>
