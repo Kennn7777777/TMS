@@ -22,9 +22,31 @@
     $: displayNotes = taskNotes.split("§").reverse();
 
     export let showModal = false;
+    let promoteLabel = "Promote";
+    let demoteLabel = "Demote";
 
     $: disablePromote = false;
-    
+
+    $: {
+        switch (taskState) {
+            case state.open: 
+                promoteLabel = "Release Task";
+                break;
+            case state.todo:
+                promoteLabel = "Take on";
+                break;
+            case state.doing:
+                promoteLabel = "Send Review"
+                demoteLabel = "Give up";
+                break;
+            case state.done:
+                promoteLabel = "Approve";
+                demoteLabel = "Reject";
+                break;
+        }
+        // console.log(JSON.stringify(notes));
+    }
+
     const state = {
         open: "open",
         todo: "todoList",
@@ -125,7 +147,6 @@
             // only check update task plan for open(PM) and done(PL) state 
             // only update and log task if there is a change in the plan
             if (taskPlan !== prevTaskPlan) {
-
                 const data = {
                     task_id: taskId,
                     prev_plan: prevTaskPlan,
@@ -304,7 +325,7 @@
         <!-- Task Description -->
         <div class="my-4">
             <p class="font-semibold">Description:</p>
-            <textarea value={taskDesc} disabled class="w-full resize-none border border-gray-300 rounded-md p-2" id="description" name="description" rows="6" />
+            <textarea value={taskDesc} disabled class="w-full resize-none border border-gray-300 rounded-md p-2" id="description" name="description" rows="6"></textarea>
         </div>
 
         <!-- Task State -->
@@ -314,20 +335,20 @@
         <div class="flex items-center space-x-2 my-4">
             <label for="plan" class="text-base font-medium text-gray-700">Plan:</label>
             
+            <!-- bind value must be placed before the on:change event  -->
             <select 
-                disabled={checkDisabledPlan()}
-                on:change={(event) => {
-                    const selectedPlan = event.target.value;
+            disabled={checkDisabledPlan()}
+                bind:value={taskPlan}
+                on:change={() => {
                     if (taskState === state.done) {
-                        if (selectedPlan === prevTaskPlan) {
+                        if (taskPlan === prevTaskPlan) {
                             disablePromote = false;
                         } else {
                             disablePromote = true;
                         }
                     }
-
                 }}
-                bind:value={taskPlan} id="plan" 
+                 id="plan" 
                     class="px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed">
                     <option value="">Select plan</option>
                     {#each plans as {plan_mvp_name}}
@@ -353,7 +374,7 @@
         <!-- Notes Field -->
         <div
             bind:this={notesArea} 
-            class="h-4/6 3xl:h-3/4 overflow-y-auto rounded-md border border-gray-300 bg-gray-100 text-gray-800 p-4">
+            class="h-4/6 3xl:h-3/4 overflow-y-auto rounded-md border border-gray-300 bg-gray-100 text-gray-800 p-4 whitespace-pre-wrap">
             {#each displayNotes as note} 
                 <p>{@html note}</p><br />
             {/each}
@@ -392,14 +413,14 @@
                     disabled={checkDisabledDemote()}
                     on:click={handleDemote}
                     class="rounded-md bg-primary px-4 py-2 text-white hover:bg-blue-700
-                        disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500">Demote
+                        disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500">{demoteLabel}
                 </button>
 
                 <button 
                     disabled={disablePromote || checkDisabledPromote()}
                     on:click={handlePromote}
                     class="rounded-md bg-primary px-4 py-2 text-white hover:bg-blue-700
-                    disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500">Promote
+                    disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500">{promoteLabel}
                 </button>
             </div>
         </div>
