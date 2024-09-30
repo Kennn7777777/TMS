@@ -31,7 +31,7 @@ module.exports = {
       if (user[0].active === 0) {
         return res.status(400).json({
           success: false,
-          message: "Your account is deactived! Please contact Admin!",
+          message: "Your account has been deactivated! Please contact Admin!",
         });
       }
 

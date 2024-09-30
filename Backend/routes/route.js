@@ -52,18 +52,18 @@ router.get("/group/getAllGroups", verifyTokenAndAuthorize(), groupController.get
 /*---------------------------------------------------------------*/
 // Application route
 /*---------------------------------------------------------------*/
-router.post("/app/createApp", verifyTokenAndAuthorize(["PL", "admin"]), appController.createApp);
-router.patch("/app/updateApp", verifyTokenAndAuthorize(["PL", "admin"]), appController.updateApp);
-router.post("/app/getApp", verifyTokenAndAuthorize(), appController.getApp);
+router.post("/app/createApp", verifyTokenAndAuthorize(["PL"]), appController.createApp);
+router.patch("/app/updateApp", verifyTokenAndAuthorize(["PL"]), appController.updateApp);
+router.post("/app/getApp", verifyTokenAndAuthorize(["PL"]), appController.getApp);
 router.get("/app/getAllapps", verifyTokenAndAuthorize(), appController.getAllApps);
 
 
 /*---------------------------------------------------------------*/
 // Plan route
 /*---------------------------------------------------------------*/
-router.post("/plan/createPlan", verifyTokenAndAuthorize(["PM", "admin"]), planController.createPlan);
-router.patch("/plan/updatePlan", verifyTokenAndAuthorize(["PM", "admin"]), planController.updatePlan);
-router.post("/plan/getPlan", verifyTokenAndAuthorize(), planController.getPlan);
+router.post("/plan/createPlan", verifyTokenAndAuthorize(["PM"]), planController.createPlan);
+router.patch("/plan/updatePlan", verifyTokenAndAuthorize(["PM"]), planController.updatePlan);
+router.post("/plan/getPlan", verifyTokenAndAuthorize(["PM"]), planController.getPlan);
 router.post("/plan/getAllPlans", verifyTokenAndAuthorize(), planController.getAllPlans);
 
 

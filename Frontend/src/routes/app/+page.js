@@ -1,31 +1,24 @@
 import { api } from '$lib/config.js';
+import { error } from '@sveltejs/kit';
 
 export const load = async ({ depends, parent }) => {
-	try {
-		const { userData } = await parent();
-		depends('app:applist');
-		console.log('LOAD ALL APPS');
+	const { userData } = await parent();
+	depends('app:applist');
 
-		const requests = [api.get('/app/getAllApps'), api.get('/group/getAllGroups')];
+	const requests = [api.get('/app/getAllApps'), api.get('/group/getAllGroups')];
 
-		const [appsRes, groupsRes] = await Promise.all(requests);
-		const apps = appsRes.data.data;
-		const groups = groupsRes.data.data;
+	const [appsRes, groupsRes] = await Promise.all(requests);
+	const apps = appsRes.data.data;
+	const groups = groupsRes.data.data;
 
-		console.log(userData);
-
-		return { apps, groups, userData };
-
-		// const response = await api.get('/app/getAllApps');
-
-		// if (response.data.success) {
-		// 	const apps = response.data.data;
-
-		// 	return { apps };
-		// }
-	} catch (error) {
-		console.log(error);
+	if (!apps && !groups) {
+		error(404, {
+			message: 'An error has occured'
+		});
 	}
+	
+	return { apps, groups, userData };
+
 };
 
 export const ssr = false;

@@ -46,7 +46,8 @@
 		} catch (error) {
 			const message = error.response?.data?.message || 'An unexpected error occurred';
 
-			if (error.response?.data?.code === 'ERR_ADMIN') {
+			// TODO: handle error message
+			if (error.response?.data?.code === 'ERR_AUTH') {
 				await logOut();
 				showToast(false, message);
 			} else {

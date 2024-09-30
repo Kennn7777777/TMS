@@ -45,7 +45,7 @@ export const load = async ({ url, depends }) => {
 				return { userData: response.data.data };
 			}
 		} catch (error) {
-			if (error.response.data.code === 'ERR_AUTH') {
+			if (error.response?.data?.code === 'ERR_AUTH' || error.response?.data?.code === 'ERR_ADMIN') {
 				await logOut();
 				showToast(false, error.response.data.message);
 			} else {

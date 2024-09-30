@@ -53,11 +53,17 @@
             }
 
         } catch (error) {
-            console.log(errors);
-            // TODO: handling error
             const message = error.response?.data?.message || 'An unexpected error occurred';
 
-            errors = error.response?.data?.errors || {};
+            if (error.response?.data?.code === 'ERR_TASK') {
+                showModal = false;
+                invalidate('app:rootlayout');
+                invalidate('app:kanban');
+                await goto('/kanban', { noScroll: false, replaceState: true });
+                showToast(false, message);
+            } else {
+                errors = error.response?.data?.errors || {};
+            }
         }
     }
     

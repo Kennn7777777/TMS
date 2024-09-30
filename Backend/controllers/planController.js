@@ -6,6 +6,15 @@ const dateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const validateDate = (date) => {
   return dateRegex.test(date);
 };
+const validateBothDate = (startDate, endDate) => {
+  // endDate is not later than startDate
+  if (new Date(endDate) <= new Date(startDate)) {
+    return false; 
+  }
+
+  return true;
+}
+
 
 module.exports = {
   createPlan: async (req, res) => {
@@ -20,12 +29,16 @@ module.exports = {
       errors.startDate = "Start date is required";
     } else if (!validateDate(startDate)) {
       errors.startDate = "Invalid date format. Please use YYYY-MM-DD.";
+    } else if (!validateBothDate(startDate, endDate)) {
+      errors.startDate = "Start date must be earlier than End date";
     }
 
     if (!endDate) {
       errors.endDate = "End date is required";
     } else if (!validateDate(endDate)) {
       errors.endDate = "Invalid date format. Please use YYYY-MM-DD.";
+    } else if (!validateBothDate(startDate, endDate)) {
+      errors.endDate = "End date must be later than Start date";
     }
 
     if (!app_acronym) {
@@ -98,12 +111,16 @@ module.exports = {
       errors.startDate = "Start date is required";
     } else if (!validateDate(startDate)) {
       errors.startDate = "Invalid date format. Please use YYYY-MM-DD.";
+    } else if (!validateBothDate(startDate, endDate)) {
+      errors.startDate = "Start date must be earlier than End date";
     }
 
     if (!endDate) {
       errors.endDate = "End date is required";
     } else if (!validateDate(endDate)) {
       errors.endDate = "Invalid date format. Please use YYYY-MM-DD.";
+    } else if (!validateBothDate(startDate, endDate)) {
+      errors.endDate = "End date must be later than Start date";
     }
 
     if (!colour) {

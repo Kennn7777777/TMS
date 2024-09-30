@@ -1,6 +1,8 @@
 <script>
     import { page } from '$app/stores';
     import { api } from '$lib/config.js';
+    import { invalidate, invalidateAll, goto } from '$app/navigation';
+    import { toasts } from 'svelte-toasts';
 
     import TaskCard from "$components/TaskCard.svelte";
     import Modal from "$components/Modal.svelte";
@@ -32,6 +34,27 @@
     let taskData = {};
     let allowActions = [];
 
+    
+    const showToast = (success, messageDesc) => {
+		if (success) {
+			toasts.success('', messageDesc, { duration: 3000, theme: 'light' });
+		} else {
+			toasts.error('', messageDesc, { duration: 3000, theme: 'light' });
+		}
+	};
+
+    const logOut = async () => {
+		try {
+			const response = await api.get('/auth/logout');
+
+			if (response.data.success) {
+				await goto('/login', { noScroll: false, replaceState: true });
+			}
+		} catch (error) {
+			console.log(error);
+		}
+	};
+
     const handleEditPlan = async (plan_name) => {
         try {
             const data = {
@@ -47,8 +70,21 @@
             }
 
         } catch (error) {
-            // TODO: handle errors
-            console.log(error);
+            const message = error.response?.data?.message || 'An unexpected error occurred';
+
+            if (error.response?.data?.code === 'ERR_PERMISSION') {
+                showEditPlanModal = false;
+                invalidate('app:rootlayout');
+                invalidate('app:kanban');
+                await goto('/kanban', { noScroll: false, replaceState: true });        
+                showToast(false, message);    
+            } else if (error.response?.data?.code === 'ERR_AUTH') {
+                await logOut();
+				showToast(false, message);
+            } else {
+                showToast(false, message);
+            }
+
         }
     }
 
@@ -59,14 +95,24 @@
             if (response.data.success) {
                 taskData = response.data.data;
                 allowActions = response.data.allowActions;
-                console.log(taskData);
+                
                 showTaskDetail = true;
                 document.body.classList.add('overflow-hidden');
             }
 
         } catch (error) {
-            // TODO: handle errors
-            console.log(error);
+            if (error.response?.data?.code === 'ERR_PERMISSION') {
+                showTaskDetail = false;
+                invalidate('app:rootlayout');
+                invalidate('app:kanban');
+                await goto('/kanban', { noScroll: false, replaceState: true });        
+                showToast(false, message);    
+            } else if (error.response?.data?.code === 'ERR_AUTH') {
+                await logOut();
+				showToast(false, message);
+            } else {
+                showToast(false, message);
+            }
         }
     }
 
@@ -232,7 +278,6 @@
         </div>
     </div>
 
-    <!-- TODO: only display to authorized groups -->
     <!-- Task Create Modal -->
     {#if isPermitCreate}
         <Modal showModal={showTaskModal}>

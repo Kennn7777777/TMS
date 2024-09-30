@@ -1,8 +1,5 @@
 const db = require("../config/db");
-const jwt = require("jsonwebtoken");
-const cookieParser = require("cookie-parser");
 const { checkgroup } = require("../middleware/authMiddleware");
-
 const nodemailer = require("nodemailer");
 
 const transport = nodemailer.createTransport({
@@ -90,17 +87,8 @@ const getCurrDateTime = () => {
   return `${day}-${month}-${year} ${hours}:${mins}:${secs}`;
 };
 
-// audit trail will log username, current state, date & timestamp, notes
-const auditLog = async (
-  action,
-  username,
-  task_id,
-  notes,
-  prev_state,
-  curr_state,
-  prev_plan,
-  curr_plan
-) => {
+// audit trail will log username, current state, date & timestamp, notes and plan
+const auditLog = async (action, username, task_id, notes, prev_state, curr_state, prev_plan, curr_plan) => {
   let actionStr = `User "${username}" `;
   let stateStr = `Current state: `;
   let noteStr = undefined;
@@ -183,9 +171,7 @@ const auditLog = async (
       task_id,
     ]);
   } catch (error) {
-    // TODO: handle errors
-    // throw error;
-    console.log(error);
+    throw error;
   }
 };
 
@@ -197,9 +183,7 @@ const updateTaskOwner = async (username, task_id) => {
       task_id,
     ]);
   } catch (error) {
-    // TODO: handle error?
-    // throw error;
-    console.log(error);
+    throw error;
   }
 };
 
@@ -235,6 +219,8 @@ module.exports = {
     }
 
     try {
+      await db.query(`START TRANSACTION;`);
+
       // check if app_acronym exists
       const [app_name] = await db.query(
         "SELECT app_acronym FROM application WHERE app_acronym = ?",
@@ -267,9 +253,8 @@ module.exports = {
         });
       }
 
-      // BEGIN TRANSACTION
       // generate task id
-      // 1. fetch r number from application associated to this task
+      // fetch r number from application
       const [app_rnumber] = await db.query(
         `SELECT app_rnumber FROM application WHERE app_acronym = ?`,
         [app_acronym]
@@ -281,13 +266,13 @@ module.exports = {
           .json({ success: false, message: "Application acronym not found" });
       }
 
-      // 2. r_number = r_number + 1
+      // increment r_number by 1
       const rnumber = app_rnumber[0].app_rnumber + 1;
 
-      // 3. generate task_id <app_acronym>_<app_rnumber>
+      // generate task_id <app_acronym>_<app_rnumber>
       const task_id = `${app_acronym}_${rnumber}`;
 
-      // 4. update app_rnumber
+      // update app_rnumber
       await db.query(
         `UPDATE application SET app_rnumber = ? WHERE app_acronym = ?`,
         [rnumber, app_acronym]
@@ -295,8 +280,8 @@ module.exports = {
 
       const createdDate = getCurrDate();
 
-      // remove task_notes field because auditlog will add in
-      const [result] = await db.query(
+      // create a new task using the newly generated task_id
+      await db.query(
         `INSERT INTO task
         (task_id, task_name, task_description, task_plan, 
         task_app_acronym, task_creator, task_owner, task_createdDate) 
@@ -306,7 +291,6 @@ module.exports = {
           task_id,
           name,
           description || null,
-          // notes || null,
           plan || null,
           app_acronym,
           creator,
@@ -330,6 +314,7 @@ module.exports = {
         message: "Task created successfully!",
       });
     } catch (error) {
+      await pool.query(`ROLLBACK;`);
       return res.status(500).json({
         success: false,
         error: error.message,
@@ -344,7 +329,7 @@ module.exports = {
     if (!state || !app_acronym) {
       return res.status(400).json({
         success: false,
-        message: "Both state and app acronym is required",
+        message: "Both task state and app acronym is required",
       });
     }
 

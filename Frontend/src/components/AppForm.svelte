@@ -4,7 +4,6 @@
     import { toasts } from 'svelte-toasts';
 
     export let title = "Create App";
-//  export let handleSubmit = () => {};
     export let showModal = false;
     export let groups = [];
     let errors = {};
@@ -19,9 +18,7 @@
     export let permit_todolist = "";
     export let permit_doing = "";
     export let permit_done = "";
-
     export let isEdit = false;
-
 
     const showToast = (success, messageDesc) => {
 		if (success) {
@@ -31,6 +28,17 @@
 		}
 	};
 
+    const logOut = async () => {
+		try {
+			const response = await api.get('/auth/logout');
+
+			if (response.data.success) {
+				await goto('/login', { noScroll: false, replaceState: true });
+			}
+		} catch (error) {
+			console.log(error);
+		}
+	};
 
     const handleSubmit = async () => {
         try {
@@ -57,11 +65,20 @@
             }
 
         } catch (error) {
-            console.log(errors);
-            // TODO: handling error
             const message = error.response?.data?.message || 'An unexpected error occurred';
 
-            errors = error.response?.data?.errors || {};
+            if (error.response?.data?.code === 'ERR_PERMISSION') {
+                showModal = false;
+                invalidate('app:rootlayout');
+                invalidate('app:applist');
+                await goto('/app', { noScroll: false, replaceState: true });        
+                showToast(false, message);    
+            } else if (error.response?.data?.code === 'ERR_AUTH') {
+                await logOut();
+				showToast(false, message);
+            } else {
+                errors = error.response?.data?.errors || {};
+            }
         }
     }
 
@@ -87,11 +104,20 @@
             }
 
         } catch (error) {
-            console.log(errors);
-            // TODO: handling error
             const message = error.response?.data?.message || 'An unexpected error occurred';
 
-            errors = error.response?.data?.errors || {};
+            if (error.response?.data?.code === 'ERR_PERMISSION') {
+                showModal = false;
+                invalidate('app:rootlayout');
+                invalidate('app:applist');
+                await goto('/app', { noScroll: false, replaceState: true });        
+                showToast(false, message);    
+            } else if (error.response?.data?.code === 'ERR_AUTH') {
+                await logOut();
+				showToast(false, message);
+            } else {
+                errors = error.response?.data?.errors || {};
+            }
         }
     }
 
@@ -131,7 +157,7 @@
         <!-- description  -->
         <div class="flex items-start justify-center space-x-4 mb-4">
             <label for="description" class="block text-sm font-medium text-gray-700 w-32">Description:</label>
-            <textarea bind:value={description} class="flex-1 resize-none border border-gray-300 rounded-md p-2" id="description" name="description" rows="4" placeholder="Enter your description here..." />
+            <textarea bind:value={description} class="flex-1 resize-none border border-gray-300 rounded-md p-2" id="description" name="description" rows="4" placeholder="Enter your description here..." maxlength="255" />
         </div>
 
         <!-- r number -->

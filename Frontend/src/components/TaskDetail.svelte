@@ -42,6 +42,26 @@
         plan: "plan",
     };
 
+    const showToast = (success, messageDesc) => {
+		if (success) {
+			toasts.success('', messageDesc, { duration: 3000, theme: 'light' });
+		} else {
+			toasts.error('', messageDesc, { duration: 3000, theme: 'light' });
+		}
+	};
+
+    const logOut = async () => {
+		try {
+			const response = await api.get('/auth/logout');
+
+			if (response.data.success) {
+				await goto('/login', { noScroll: false, replaceState: true });
+			}
+		} catch (error) {
+			console.log(error);
+		}
+	};
+
     // reload task detail data
     const handleReloadTaskDetail = async () => {  
         try {
@@ -60,20 +80,22 @@
                 }
                 
             }
-
         } catch (error) {
-            // TODO: handle errors
-            console.log(error);
+            const message = error.response?.data?.message || 'An unexpected error occurred';
+
+            if (error.response?.data?.code === 'ERR_TASK') {
+                showModal = false;
+                invalidate('app:rootlayout');
+                invalidate('app:kanban');
+                await goto('/kanban', { noScroll: false, replaceState: true });
+                showToast(false, message);
+            } else if (error.response?.data?.code === 'ERR_AUTH') {
+                await logOut();
+				showToast(false, message);
+            }
         }
     }
 
-    const showToast = (success, messageDesc) => {
-		if (success) {
-			toasts.success('', messageDesc, { duration: 3000, theme: 'light' });
-		} else {
-			toasts.error('', messageDesc, { duration: 3000, theme: 'light' });
-		}
-	};
 
     const checkDisabledPlan = () => {
         return !allowActions.includes(actions.plan);
@@ -101,7 +123,6 @@
             let toastMsg = "";
 
             // only check update task plan for open(PM) and done(PL) state 
-            // if (taskState === state.open || taskState === state.done) {
             // only update and log task if there is a change in the plan
             if (taskPlan !== prevTaskPlan) {
                 const data = {
@@ -116,14 +137,8 @@
                 if (response.data.success) {
                     displayMessage ++;
                     toastMsg = response.data.message;
-                    
-                    // showToast(true, response.data.message);
-                    // showModal = false;
-                    // invalidate('app:rootlayout');
-                    // invalidate('app:kanban');
                 }
             }
-            // }
 
             // all states is able to update notes
             // update and log task notes
@@ -139,10 +154,6 @@
                 if (response.data.success) {
                     displayMessage ++;
                     toastMsg = response.data.message;
-                    // showToast(true, response.data.message);
-                    // showModal = false;
-                    // invalidate('app:rootlayout');
-                    // invalidate('app:kanban');
                 }
             }
 
@@ -165,14 +176,21 @@
             notes = "";
 
         } catch (error) {
-            console.log(error);
-        }
+            const message = error.response?.data?.message || 'An unexpected error occurred';
 
+            if (error.response?.data?.code === 'ERR_TASK') {
+                showModal = false;
+                invalidate('app:rootlayout');
+                invalidate('app:kanban');
+                await goto('/kanban', { noScroll: false, replaceState: true });
+                showToast(false, message);
+            } else if (error.response?.data?.code === 'ERR_AUTH') {
+                await logOut();
+				showToast(false, message);
+            }
+        }
     };
 
-    // save => plan (open, done) and notes (all state except close?)
-    // update plan in [open](PM) [done](PL) 
-    // promote/demote => plan and notes + task state change
     const handleDemote = async () => {
         try {
             await handleSaveChanges();
@@ -200,12 +218,22 @@
             }
 
         } catch (error) {
-            console.log(error);
+            const message = error.response?.data?.message || 'An unexpected error occurred';
+
+            if (error.response?.data?.code === 'ERR_TASK') {
+                showModal = false;
+                invalidate('app:rootlayout');
+                invalidate('app:kanban');
+                await goto('/kanban', { noScroll: false, replaceState: true });
+                showToast(false, message);
+            } else if (error.response?.data?.code === 'ERR_AUTH') {
+                await logOut();
+				showToast(false, message);
+            }
         }
     };
 
     const handlePromote = async () => {
-        // TODO: check which group is able to perform the actions in different states
         try {
             await handleSaveChanges();
 
@@ -242,10 +270,19 @@
             }  
 
         } catch (error) {
-            // TODO: handle error
-            console.log(error);
+            const message = error.response?.data?.message || 'An unexpected error occurred';
+
+            if (error.response?.data?.code === 'ERR_TASK') {
+                showModal = false;
+                invalidate('app:rootlayout');
+                invalidate('app:kanban');
+                await goto('/kanban', { noScroll: false, replaceState: true });
+                showToast(false, message);
+            } else if (error.response?.data?.code === 'ERR_AUTH') {
+                await logOut();
+				showToast(false, message);
+            }
         }
-        
     };
     
 </script>

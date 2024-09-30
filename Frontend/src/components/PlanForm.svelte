@@ -5,7 +5,6 @@
     import { toasts } from 'svelte-toasts';
 
     export let title = "Create Plan";
-    // export let handleSubmit = () => {};
     export let showModal = false;
     export let isEdit = false;
 
@@ -16,12 +15,6 @@
     export let colour;
 
     let errors = {};
-
-    $: {
-        // console.log(startDate);
-        // console.log(endDate);
-        // console.log(colour);
-    }
 
     const randomHexColors = () => {
         const arr = ["#FFFF00", "#FF6F91", "#A8E6CF", "#B3E5FC", "#FFAB40", "#D7B2E0", "#E1BEE7", "#FFCCBC", "#FF5252"];
@@ -37,7 +30,19 @@
 		}
 	};
 
-    const handleCreatePlan = async () => {
+    const logOut = async () => {
+		try {
+			const response = await api.get('/auth/logout');
+
+			if (response.data.success) {
+				await goto('/login', { noScroll: false, replaceState: true });
+			}
+		} catch (error) {
+			console.log(error);
+		}
+	};
+
+    const handleSubmit = async () => {
         try {
             const data = {
                 mvp_name: name,
@@ -47,7 +52,12 @@
                 colour: colour.slice(1,colour.length)
             }
 
-            const response = await api.post("/plan/createPlan", data);
+            let response;
+            if (!isEdit) {
+                response = await api.post("/plan/createPlan", data);
+            } else {
+                response = await api.patch("/plan/updatePlan", data);
+            }
 
             if (response.data.success) {
                 showToast(true, response.data.message);
@@ -57,40 +67,58 @@
             }
             
         } catch (error) {
-            console.log(errors);
-            // TODO: handling error
             const message = error.response?.data?.message || 'An unexpected error occurred';
 
-            errors = error.response?.data?.errors || {};
-        }
-    }
-
-    const handleEditPlan = async () => {
-        try {
-            const data = {
-                mvp_name: name,
-                app_acronym: app_acronym,
-                startDate: startDate,
-                endDate: endDate,
-                colour: colour.slice(1,colour.length)
-            }
-
-            const response = await api.patch("/plan/updatePlan", data);
-            
-            if (response.data.success) {
-                showToast(true, response.data.message);
-                showModal = false;    
+            if (error.response?.data?.code === 'ERR_PERMISSION') {
+                showModal = false;
                 invalidate('app:rootlayout');
                 invalidate('app:kanban');
+                await goto('/kanban', { noScroll: false, replaceState: true });        
+                showToast(false, message);    
+            } else if (error.response?.data?.code === 'ERR_AUTH') {
+                await logOut();
+				showToast(false, message);
+            } else {
+                errors = error.response?.data?.errors || {};
             }
-        } catch (error) {
-            console.log(errors);
-            // TODO: handling error
-            const message = error.response?.data?.message || 'An unexpected error occurred';
-
-            errors = error.response?.data?.errors || {};
         }
     }
+
+    // const handleEditPlan = async () => {
+    //     try {
+    //         const data = {
+    //             mvp_name: name,
+    //             app_acronym: app_acronym,
+    //             startDate: startDate,
+    //             endDate: endDate,
+    //             colour: colour.slice(1,colour.length)
+    //         }
+
+    //         const response = await api.patch("/plan/updatePlan", data);
+            
+    //         if (response.data.success) {
+    //             showToast(true, response.data.message);
+    //             showModal = false;    
+    //             invalidate('app:rootlayout');
+    //             invalidate('app:kanban');
+    //         }
+    //     } catch (error) {
+    //         const message = error.response?.data?.message || 'An unexpected error occurred';
+
+    //         if (error.response?.data?.code === 'ERR_PERMISSION') {
+    //             showModal = false;
+    //             invalidate('app:rootlayout');
+    //             invalidate('app:kanban');
+    //             await goto('/kanban', { noScroll: false, replaceState: true });        
+    //             showToast(false, message);    
+    //         } else if (error.response?.data?.code === 'ERR_AUTH') {
+    //             await logOut();
+	// 			showToast(false, message);
+    //         } else {
+    //             errors = error.response?.data?.errors || {};
+    //         }
+    //     }
+    // }
 
     onMount(() => {
         if(!colour) {
@@ -106,7 +134,7 @@
     <h2 class="text-2xl font-semibold mb-4 ml-5">{title}</h2>
 
     <!-- form -->
-    <form on:submit|preventDefault={!isEdit?handleCreatePlan:handleEditPlan} class="max-w-3xl mx-auto mt-5">
+    <form on:submit|preventDefault={handleSubmit} class="max-w-3xl mx-auto mt-5">
         <!-- plan name -->
         <div class="flex items-center justify-center space-x-4">
             <label for="name" class="block text-sm font-medium text-gray-700 w-32">Name:</label>

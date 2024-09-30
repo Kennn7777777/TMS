@@ -47,20 +47,21 @@
 			console.log(error);
 		}
 	};
+
 </script>
 
 <main class="h-full">
 	{#if showNavbar}
 		<nav class="bg-gray-400 sticky top-0 w-full z-[99]">
 			<!-- max-w-[90rem] -->
-			<div class="mx-auto lg:max-w-[118rem] max-w-[90rem] px-2">
+			<div class="mx-auto lg:max-w-[118rem] max-w-[90rem] px-4">
 				<div class="relative flex h-16 items-center justify-between">
 					<div class="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
-						<div class="hidden sm:ml-6 sm:block">
-							<div class="flex space-x-4">
+						<div class="hidden sm:block">
+							<div class="flex">
 								<a
 									href={$page.url.pathname}
-									class=" px-3 py-2 text-lg font-medium text-black cursor-default"
+									class="py-2 px-4 text-lg font-medium text-black cursor-default"
 									aria-current="page">{title}</a
 								>
 							</div>
@@ -68,7 +69,7 @@
 					</div>
 					
 					<div
-						class="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0"
+						class="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-10 sm:px-4"
 					>
 					
 						<!-- username -->
@@ -137,11 +138,12 @@
 			</div>
 		</nav>
 	{/if}
-
+	
 	<slot />
-
+	
 	<!-- Toast Notification message -->
 	<ToastContainer placement="bottom-left" let:data >
 		<FlatToast {data} />
 	</ToastContainer>
+	
 </main>

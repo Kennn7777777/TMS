@@ -7,6 +7,14 @@ const dateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const validateDate = (date) => {
   return dateRegex.test(date);
 };
+const validateBothDate = (startDate, endDate) => {
+  // endDate is not later than startDate
+  if (new Date(endDate) <= new Date(startDate)) {
+    return false; 
+  }
+
+  return true;
+}
 
 module.exports = {
   createApp: async (req, res) => {
@@ -43,55 +51,23 @@ module.exports = {
       errors.startDate = "Start date is required";
     } else if (!validateDate(startDate)) {
       errors.startDate = "Invalid date format. Please use YYYY-MM-DD.";
+    } else if (!validateBothDate(startDate, endDate)) {
+      errors.startDate = "Start date must be earlier than End date";
     }
 
     if (!endDate) {
       errors.endDate = "End date is required";
     } else if (!validateDate(endDate)) {
       errors.endDate = "Invalid date format. Please use YYYY-MM-DD.";
+    } else if (!validateBothDate(startDate, endDate)) {
+      errors.endDate = "End date must be later than Start date";
     }
-
-    // this is for multiple group selection
-    // if (permit_create) {
-    //   const create_groups = permit_create.split(",");
-    //   if (!Array.isArray(create_groups)) {
-    //     errors.permit_create = "Invalid permit_create format";
-    //   }
-    // }
-
-    // if (permit_open) {
-    //   const open_groups = permit_open.split(",");
-    //   if (!Array.isArray(open_groups)) {
-    //     errors.permit_open = "Invalid permit_open format";
-    //   }
-    // }
-
-    // if (permit_todolist) {
-    //   const todolist_groups = permit_todolist.split(",");
-    //   if (!Array.isArray(todolist_groups)) {
-    //     errors.permit_todolist = "Invalid permit_todolist format";
-    //   }
-    // }
-
-    // if (permit_doing) {
-    //   const doing_groups = permit_doing.split(",");
-    //   if (!Array.isArray(doing_groups)) {
-    //     errors.permit_doing = "Invalid permit_doing format";
-    //   }
-    // }
-
-    // if (permit_done) {
-    //   const done_groups = permit_done.split(",");
-    //   if (!Array.isArray(done_groups)) {
-    //     errors.permit_done = "Invalid permit_done format";
-    //   }
-    // }
 
     if (Object.keys(errors).length > 0) {
       return res.status(400).json({
         success: false,
         errors: errors,
-        message: "Unable to create application",
+        message: "Unable to create application!",
       });
     }
 
@@ -149,32 +125,18 @@ module.exports = {
   updateApp: async (req, res) => {
     const {
       app_acronym,
-      description, //o string
-      permit_create, //o string "pl, pm"
-      permit_open, //o string "pl, pm"
-      permit_todolist, //o string "pl, pm"
-      permit_doing, //o string "pl, pm"
-      permit_done, //o string "pl, pm"
+      description, 
+      permit_create, 
+      permit_open, 
+      permit_todolist, 
+      permit_doing, 
+      permit_done,
     } = req.body;
 
     if (!app_acronym) {
       return res.status(400).json({
         success: false,
         message: "app_acronym is required",
-      });
-    }
-
-    if (
-      !description &&
-      !permit_create &&
-      !permit_open &&
-      !permit_todolist &&
-      !permit_doing &&
-      !permit_done
-    ) {
-      return res.status(200).json({
-        success: true,
-        message: "Application updated successfully!",
       });
     }
 
