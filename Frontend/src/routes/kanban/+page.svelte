@@ -131,48 +131,49 @@
                 >
             {/if}
             
-            {#if isPM}
-                <div class="group relative cursor-pointer py-2">
-                    <div class="relative ml-3">
-                        <div>
-                            <button
-                                type="button"
-                                class="relative flex rounded-md bg-primary px-10 py-2 text-sm font-medium text-white hover:bg-blue-600"
-                                id="user-menu-button"
-                                aria-expanded="false"
-                                aria-haspopup="true"
-                            >
-                                <span class="absolute -inset-1.5"></span>
-                                <span class="sr-only">Open user menu</span>
-                                Plan
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- plan dropdown menu -->
-                    <div
-                        class="invisible absolute mt-2 right-0 z-[99] flex flex-col bg-gray-100 px-4 py-1 text-gray-800 shadow-xl group-hover:visible items-start"
-                    >
-                        {#each plans as {plan_mvp_name}(plan_mvp_name)}
-                            <button 
-                                on:click={() => handleEditPlan(plan_mvp_name)}
-                                class="my-2 w-full text-start border-b border-gray-100 py-1 font-semibold text-gray-500 hover:text-black md:mx-2">
-                                {plan_mvp_name}
-                            </button>   
-                        {/each}
-
-                        <!-- create new plan -->
-                        <button 
-                            on:click={() => {
-                                showPlanModal = true;
-                            }}
-                            class="my-2 text-nowrap border-b border-gray-100 py-1 font-semibold text-gray-500 hover:text-black md:mx-2">
-                            Create new Plan
-                        </button>          
+            
+            <div class="group relative cursor-pointer py-2">
+                <div class="relative ml-3">
+                    <div>
+                        <button
+                            disabled={!isPM}
+                            type="button"
+                            class="relative flex rounded-md bg-primary px-10 py-2 text-sm font-medium text-white hover:bg-blue-60"
+                            id="user-menu-button"
+                            aria-expanded="false"
+                            aria-haspopup="true"
+                        >
+                            <span class="absolute -inset-1.5"></span>
+                            <span class="sr-only">Open user menu</span>
+                            Plan
+                        </button>
                     </div>
                 </div>
-            {/if}
-            
+
+                <!-- plan dropdown menu -->
+                <div
+                    class="invisible absolute mt-2 right-0 z-[99] flex flex-col bg-gray-100 px-4 py-1 text-gray-800 shadow-xl group-hover:visible items-start"
+                >
+                    {#each plans as {plan_mvp_name}(plan_mvp_name)}
+                        <button 
+                            on:click={() => handleEditPlan(plan_mvp_name)}
+                            class="my-2 w-full text-start border-b border-gray-100 py-1 font-semibold text-gray-500 hover:text-black md:mx-2">
+                            {plan_mvp_name}
+                        </button>   
+                    {/each}
+
+                    <!-- create new plan -->
+                    {#if isPM}
+                    <button 
+                        on:click={() => {
+                            showPlanModal = true;
+                        }}
+                        class="my-2 text-nowrap border-b border-gray-100 py-1 font-semibold text-gray-500 hover:text-black md:mx-2">
+                        Create new Plan
+                    </button>      
+                    {/if}     
+                </div>
+            </div>            
         </div>
 
         <!-- kanban board -->
@@ -291,28 +292,29 @@
     {/if}
 
     <!-- Plan Create Modal -->
-    {#if isPM}
-        <Modal showModal={showPlanModal}>
-            <PlanForm
-                app_acronym={app_acronym}
-                bind:showModal={showPlanModal}
-            />
-        </Modal>
+    <Modal showModal={showPlanModal}>
+        <PlanForm
+            app_acronym={app_acronym}
+            bind:showModal={showPlanModal}
+            isPM={isPM}
+        />
+    </Modal>
 
-        <!-- Plan Edit Modal -->
-        <Modal showModal={showEditPlanModal}>
-            <PlanForm
-                title={"Edit Plan"}
-                app_acronym={app_acronym}
-                name={editData.plan_mvp_name}
-                startDate={editData.plan_startDate}
-                endDate={editData.plan_endDate}
-                colour={`#${editData.plan_colour}`}
-                isEdit={true}
-                bind:showModal={showEditPlanModal}
-            />
-        </Modal>
-    {/if}
+    <!-- Plan Edit Modal -->
+    <Modal showModal={showEditPlanModal}>
+        <PlanForm
+            title={"Edit Plan"}
+            app_acronym={app_acronym}
+            name={editData.plan_mvp_name}
+            startDate={editData.plan_startDate}
+            endDate={editData.plan_endDate}
+            colour={`#${editData.plan_colour}`}
+            isEdit={true}
+            isPM={isPM}
+            bind:showModal={showEditPlanModal}
+        />
+    </Modal>
+
 
     <!-- Task details Modal -->
    <Modal showModal={showTaskDetail}>

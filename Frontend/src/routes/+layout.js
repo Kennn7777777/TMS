@@ -30,12 +30,6 @@ export const load = async ({ url, depends }) => {
 			const response = await api.get('/users/getUser');
 
 			if (response.data.success) {
-				// const userGroups = response.data.data.group_names?.split(', ');
-				// if (url.pathname === '/admin' && !userGroups.includes('admin')) {
-				// 	await goto('/');
-				// }
-				// return { userData: { ...response.data.data, group_names: userGroups } };
-
 				const isAdmin = response.data.data.isAdmin;
 
 				if (url.pathname === '/admin' && !isAdmin) {

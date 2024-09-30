@@ -40,7 +40,6 @@ export const load = async ({ parent, depends }) => {
 	const plans = planReq.data.data;
 	const isPermitCreate = isPermitCreateReq.data.isPermitCreate;
 
-
 	return {
 		openTasks,
 		todoTasks,

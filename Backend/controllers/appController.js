@@ -4,6 +4,8 @@ const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 
 const dateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+const appRegex = /^[\w]+$/;
+
 const validateDate = (date) => {
   return dateRegex.test(date);
 };
@@ -16,25 +18,39 @@ const validateBothDate = (startDate, endDate) => {
   return true;
 }
 
+const validateAcronym = (app) => {
+  return appRegex.test(app);
+};
+
 module.exports = {
   createApp: async (req, res) => {
     const {
-      acronym, // m string
-      description, //o string
-      rnumber, //m int
-      startDate, //m string
-      endDate, //m string
-      permit_create, //o string "pl, pm"
-      permit_open, //o string "pl, pm"
-      permit_todolist, //o string "pl, pm"
-      permit_doing, //o string "pl, pm"
-      permit_done, //o string "pl, pm"
+      acronym, 
+      description,
+      rnumber, 
+      startDate, 
+      endDate, 
+      permit_create, 
+      permit_open, 
+      permit_todolist, 
+      permit_doing, 
+      permit_done,
     } = req.body;
 
     const errors = {};
 
     if (!acronym) {
       errors.acronym = "App Acronym is required";
+    }
+
+    if (!validateAcronym(acronym)) {
+      return res.status(400).json({
+        success: false,
+        errors: {
+          acronym: "Invalid app acronym. It can only consist of alphanumeric characters and underscores.",
+        },
+        message: "Unable to create application!",
+      });
     }
 
     if (!rnumber && rnumber !== 0) {

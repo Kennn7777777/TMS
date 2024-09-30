@@ -13,6 +13,11 @@
     export let startDate = "";
     export let endDate = "";
     export let colour;
+    export let isPM;
+
+    $: {
+        console.log(isPM);
+    }
 
     let errors = {};
 
@@ -165,8 +170,9 @@
         <div class="flex items-center justify-center space-x-4">
             <label for="start-date" class="block text-sm font-medium text-gray-700 w-32">Start date:</label>
             
-            <input id="start-date" type="date" 
-                class="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+            <input id="start-date" type="date"
+                disabled={!isPM} 
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
                 bind:value={startDate}
                 on:input={() => {
                     if (errors.hasOwnProperty('startDate')) {
@@ -189,7 +195,8 @@
             <label for="end-date" class="block text-sm font-medium text-gray-700 w-32">End date:</label>
             
             <input id="end-date" type="date"
-                class="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                disabled={!isPM}
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
                 bind:value={endDate}
                 on:input={() => {
                     if (errors.hasOwnProperty('endDate')) {
@@ -212,6 +219,7 @@
             <label for="colour" class="block text-sm font-medium text-gray-700 w-32">Colour:</label>
             
             <input 
+                disabled={!isPM}
                 type="color" id="colour" name="colour" 
                 bind:value={colour} 
                 class="border border-gray-300 rounded-md">       
@@ -235,7 +243,11 @@
                 Close
             </button>
 
-            <button type="submit" class="rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600">{title}</button>
+            <button
+                disabled={!isPM}
+                type="submit" 
+                class="rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600
+                disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed">{title}</button>
         </div>
     </form>
 </div>

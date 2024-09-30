@@ -19,12 +19,11 @@
     let notes = ""; // user entered notes
     let notesArea; // for scrolling the displayed notes
 
-    $: displayNotes = taskNotes.split("§");
-    $: {
-        // console.log(displayNotes);
-    }
+    $: displayNotes = taskNotes.split("§").reverse();
 
     export let showModal = false;
+
+    $: disablePromote = false;
     
     const state = {
         open: "open",
@@ -75,7 +74,8 @@
                 
                 if (notesArea) {
                     requestAnimationFrame(() => {
-                        notesArea.scrollTop = notesArea.scrollHeight;
+                        // notesArea.scrollHeight
+                        notesArea.scrollTop = 0;
                     });
                 }
                 
@@ -110,7 +110,7 @@
     }
 
     const checkDisabledPromote = () => {
-        return !allowActions.includes(actions.promoted);
+        return (!allowActions.includes(actions.promoted));
     }
 
     const checkDisabledDemote = () => {
@@ -125,6 +125,7 @@
             // only check update task plan for open(PM) and done(PL) state 
             // only update and log task if there is a change in the plan
             if (taskPlan !== prevTaskPlan) {
+
                 const data = {
                     task_id: taskId,
                     prev_plan: prevTaskPlan,
@@ -315,6 +316,17 @@
             
             <select 
                 disabled={checkDisabledPlan()}
+                on:change={(event) => {
+                    const selectedPlan = event.target.value;
+                    if (taskState === state.done) {
+                        if (selectedPlan === prevTaskPlan) {
+                            disablePromote = false;
+                        } else {
+                            disablePromote = true;
+                        }
+                    }
+
+                }}
                 bind:value={taskPlan} id="plan" 
                     class="px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed">
                     <option value="">Select plan</option>
@@ -370,7 +382,7 @@
                 <!-- bg-gray-200 text-gray-700 hover:bg-gray-300-->
                 
                 <button
-                    disabled={checkDisabledSave()}
+                    disabled={disablePromote || checkDisabledSave()}
                     on:click={handleSaveChanges}
                     class="rounded-md bg-black px-4 py-2 text-white hover:bg-gray-800
                     disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500">Save Changes
@@ -384,7 +396,7 @@
                 </button>
 
                 <button 
-                    disabled={checkDisabledPromote()}
+                    disabled={disablePromote || checkDisabledPromote()}
                     on:click={handlePromote}
                     class="rounded-md bg-primary px-4 py-2 text-white hover:bg-blue-700
                     disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500">Promote

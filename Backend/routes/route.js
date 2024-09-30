@@ -63,7 +63,7 @@ router.get("/app/getAllapps", verifyTokenAndAuthorize(), appController.getAllApp
 /*---------------------------------------------------------------*/
 router.post("/plan/createPlan", verifyTokenAndAuthorize(["PM"]), planController.createPlan);
 router.patch("/plan/updatePlan", verifyTokenAndAuthorize(["PM"]), planController.updatePlan);
-router.post("/plan/getPlan", verifyTokenAndAuthorize(["PM"]), planController.getPlan);
+router.post("/plan/getPlan", verifyTokenAndAuthorize(), planController.getPlan);
 router.post("/plan/getAllPlans", verifyTokenAndAuthorize(), planController.getAllPlans);
 
 

@@ -4,7 +4,6 @@
     import { api } from '$lib/config.js';
     import { toasts } from 'svelte-toasts';
     
-
     import AppCard from '$components/AppCard.svelte';
     import Modal from "$components/Modal.svelte";
     import AppForm from "$components/AppForm.svelte";
@@ -110,17 +109,21 @@
             
             <!-- display application cards -->
             <div class="p-8 ">
-                <div class="grid md:grid-cols-4 sm:grid-cols-2 gap-8">
-                    {#each apps as app (app.app_acronym)}
-                        <AppCard 
-                            isEditVisible={isPL}
-                            handleView={() => handleViewApp(app.app_acronym)}
-                            handleEdit={() => handleEditApp(app.app_acronym)}
-                            title={app.app_acronym} 
-                            description={app.app_description} 
-                            rnumber={app.app_rnumber}/>
-                    {/each}
-                </div>
+                {#if apps.length > 0}
+                    <div class="grid md:grid-cols-4 sm:grid-cols-2 gap-8">
+                        {#each apps as app (app.app_acronym)}
+                            <AppCard 
+                                isEditVisible={isPL}
+                                handleView={() => handleViewApp(app.app_acronym)}
+                                handleEdit={() => handleEditApp(app.app_acronym)}
+                                title={app.app_acronym} 
+                                description={app.app_description} 
+                                rnumber={app.app_rnumber}/>
+                        {/each}
+                    </div>
+                {:else}
+                    <span class="text-base">No application here...</span>
+                {/if}
             </div>
         </div>
     </div>

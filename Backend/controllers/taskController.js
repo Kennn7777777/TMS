@@ -33,7 +33,7 @@ const emailPL = async (task_id) => {
   try {
     // retrieve task name and user email
     const [result] = await db.query(
-      `SELECT t.task_name, u.email FROM task t JOIN user u ON t.task_owner = u.username 
+      `SELECT t.task_name, u.email FROM task t JOIN user u ON t.task_creator = u.username  
       WHERE task_id = ?`,
       [task_id]
     );
@@ -42,7 +42,7 @@ const emailPL = async (task_id) => {
     const recipients = result[0]?.email || "tmstest@mailinator.com";
     const task_name = result[0]?.task_name;
     const subject = "Task Completion Notification for Approval";
-    const message = `This is to inform you that the task <${task_name}> has been completed. It is now ready for your review and approval.`;
+    const message = `This is to inform you that the task "${task_name}" has been completed. It is now ready for your review and approval.`;
 
     transport
       .sendMail({
@@ -67,24 +67,25 @@ const emailPL = async (task_id) => {
 // get current date in the format of DD-MM-YYYY
 const getCurrDate = () => {
   const today = new Date();
-  const day = String(today.getDate()).padStart(2, "0"); // Get day and pad with zero if needed
-  const month = String(today.getMonth() + 1).padStart(2, "0"); // Months are zero-based
-  const year = today.getFullYear(); // Get the full year
+  const day = String(today.getDate()).padStart(2, "0"); // get day and pad with zero 
+  const month = String(today.getMonth() + 1).padStart(2, "0"); // get month and pad with zero 
+  const year = today.getFullYear();
 
-  return `${day}-${month}-${year}`; // Format as DD-MM-YYYY
+  return `${day}-${month}-${year}`; // format as DD-MM-YYYY
 };
 
+// get current datetime in format as DD-MM-YYYY HH:MM:SS
 const getCurrDateTime = () => {
   const today = new Date();
-  const day = String(today.getDate()).padStart(2, "0"); // Get day and pad with zero if needed
-  const month = String(today.getMonth() + 1).padStart(2, "0"); // Months are zero-based
-  const year = today.getFullYear(); // Get the full year
+  const day = String(today.getDate()).padStart(2, "0"); // get day and pad with zero 
+  const month = String(today.getMonth() + 1).padStart(2, "0"); // get month and pad with zero 
+  const year = today.getFullYear();
 
   const hours = String(today.getHours()).padStart(2, "0");
   const mins = String(today.getMinutes()).padStart(2, "0");
   const secs = String(today.getSeconds()).padStart(2, "0");
 
-  return `${day}-${month}-${year} ${hours}:${mins}:${secs}`;
+  return `${day}-${month}-${year} ${hours}:${mins}:${secs}`; 
 };
 
 // audit trail will log username, current state, date & timestamp, notes and plan
@@ -307,6 +308,7 @@ module.exports = {
         null,
         state.open
       );
+      await db.query(`COMMIT;`);
 
       res.status(201).json({
         success: true,
