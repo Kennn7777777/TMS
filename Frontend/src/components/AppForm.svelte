@@ -298,7 +298,7 @@
                 Close
             </button>
 
-            <button type="submit" class="rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600">{title}</button>
+            <button type="submit" class="rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600">{isEdit?"Save Changes":title}</button>
         </div>
     </form>
 </div>

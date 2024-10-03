@@ -377,6 +377,7 @@
             class="h-4/6 3xl:h-3/4 overflow-y-auto rounded-md border border-gray-300 bg-gray-100 text-gray-800 p-4 whitespace-pre-wrap">
             {#each displayNotes as note} 
                 <p>{@html note}</p><br />
+                <p>################################################################</p>
             {/each}
         </div>
 
