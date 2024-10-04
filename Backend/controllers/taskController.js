@@ -316,7 +316,7 @@ module.exports = {
         message: "Task created successfully!",
       });
     } catch (error) {
-      await pool.query(`ROLLBACK;`);
+      await db.query(`ROLLBACK;`);
       return res.status(500).json({
         success: false,
         error: error.message,
@@ -901,6 +901,234 @@ module.exports = {
         success: false,
         error: error.message,
         message: "Unable to retrieve app permit group!",
+      });
+    }
+  },
+
+
+  ///////////////////////////////////////////////////
+  createTask2: async (req, res) => {
+    const { name, description, notes, plan, app_acronym, creator, owner } =
+      req.body;
+
+    const errors = {};
+
+    if (!name) {
+      errors.name = "Name is required";
+    }
+
+    if (!app_acronym) {
+      errors.acronym = "Application acroynm is required";
+    }
+
+    if (!creator) {
+      errors.creator = "Creator is required";
+    }
+
+    if (!owner) {
+      errors.owner = "Owner is required";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        success: false,
+        errors: errors,
+        message: "Unable to create task",
+      });
+    }
+
+    try {
+      await db.query(`START TRANSACTION;`);
+
+      // check if app_acronym exists
+      const [app_name] = await db.query(
+        "SELECT app_acronym FROM application WHERE app_acronym = ?",
+        [app_acronym]
+      );
+
+      if (app_name.length === 0) {
+        return res.status(400).json({
+          success: false,
+          errors: {
+            acronym: "Application acronym does not exists",
+          },
+          message: "Unable to create task!",
+        });
+      }
+
+      // check if task name already exists within application
+      const [task_name] = await db.query(
+        `SELECT task_name FROM task WHERE task_app_acronym = ? AND task_name = ?`,
+        [app_acronym, name]
+      );
+
+      if (task_name.length > 0) {
+        return res.status(400).json({
+          success: false,
+          errors: {
+            name: "Task name already exists",
+          },
+          message: "Unable to create task!",
+        });
+      }
+
+      // generate task id
+      // fetch r number from application
+      const [app_rnumber] = await db.query(
+        `SELECT app_rnumber FROM application WHERE app_acronym = ?`,
+        [app_acronym]
+      );
+
+      if (app_rnumber.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Application acronym not found" });
+      }
+
+      // increment r_number by 1
+      const rnumber = app_rnumber[0].app_rnumber + 1;
+
+      // generate task_id <app_acronym>_<app_rnumber>
+      const task_id = `${app_acronym}_${rnumber}`;
+
+      // update app_rnumber
+      await db.query(
+        `UPDATE application SET app_rnumber = ? WHERE app_acronym = ?`,
+        [rnumber, app_acronym]
+      );
+
+      const createdDate = getCurrDate();
+
+      // create a new task using the newly generated task_id
+      await db.query(
+        `INSERT INTO task
+        (task_id, task_name, task_description, task_plan, 
+        task_app_acronym, task_creator, task_owner, task_createdDate) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          task_id,
+          name,
+          description || null,
+          plan || null,
+          app_acronym,
+          creator,
+          owner,
+          createdDate,
+        ]
+      );
+
+      await auditLog(
+        actions.create,
+        req.username,
+        task_id,
+        notes,
+        null,
+        state.open
+      );
+      await db.query(`COMMIT;`);
+
+      res.status(201).json({
+        success: true,
+        data: rnumber,
+        message: "Task created successfully!",
+      });
+    } catch (error) {
+      await pool.query(`ROLLBACK;`);
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        message: "Unable to create task!",
+      });
+    }
+  },
+  getTasksByState2: async (req, res) => {
+    const { state, app_acronym } = req.body;
+
+    if (!state || !app_acronym) {
+      return res.status(400).json({
+        success: false,
+        message: "Both task state and app acronym is required",
+      });
+    }
+
+    try {
+      const [result] = await db.query(
+        `SELECT t.task_id, t.task_name, t.task_description, t.task_owner, p.plan_colour
+        FROM task t
+        LEFT JOIN plan p ON t.task_plan = p.plan_mvp_name AND t.task_app_acronym = p.plan_app_acronym
+        WHERE t.task_state = ? AND t.task_app_acronym = ?
+        `,
+        [state, app_acronym]
+      );
+
+      if (result.length === 0) {
+        return res.status(200).json({
+          success: true,
+          data: result,
+          message: "No tasks retrieved...",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: "All tasks retrieved successfully!",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        message: "Unable to retrieve tasks!",
+      });
+    }
+  },
+  promoteTask2Done2: async (req, res) => {
+    const { task_id } = req.body;
+
+    if (!task_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Task id is required",
+      });
+    }
+
+    try {
+      const [result] = await db.query(
+        `UPDATE task SET task_state = ? WHERE task_id = ? AND task_state = ?`,
+        [state.done, task_id, state.doing]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Task id not found or task is not the "doing" state',
+        });
+      }
+
+      await updateTaskOwner(req.username, task_id);
+
+      await auditLog(
+        actions.promoted,
+        req.username,
+        task_id,
+        null,
+        state.doing,
+        state.done
+      );
+
+      // send email to notify Project Lead (creator)
+      await emailPL(task_id);
+
+      res.status(200).json({
+        success: true,
+        message: "Task state promoted successfully!",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        message: "Unable to update task state!",
       });
     }
   },

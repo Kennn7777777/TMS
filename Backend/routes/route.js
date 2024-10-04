@@ -97,5 +97,21 @@ router.patch("/task/demoteTask2Doing", verifyTokenAndAuthorize(), permitTaskActi
 // retrieve app_permit_create
 router.post("/task/getAppPermitCreate", verifyTokenAndAuthorize(), taskController.getAppPermitCreate);
 
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+const createTaskController = require("../controllers/createTaskController");
+const getTaskController = require("../controllers/getTaskController");
+const promoteTaskController = require("../controllers/promoteTaskController");
+
+// create task [PL] open state by default
+// router.post("/task/createTask2", verifyTokenAndAuthorize(), permitTaskAction("create"), createTaskController.createTask);
+router.post("/task/createTask2", createTaskController.createTask);
+// retrieve all tasks in a particular state
+router.post("/task/getTasksByState2", getTaskController.getTasksByState);
+// promote task from doing to done state [Dev] (request approval from PL)
+router.patch("/task/promoteTask2Done2", verifyTokenAndAuthorize(), permitTaskAction(), promoteTaskController.promoteTask2Done);
+
 // default export
 module.exports = router;
