@@ -1,26 +1,6 @@
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
-
-// username: string
-// groupname: array of group []
-const checkgroup = async (username, groupname) => {
-  try {
-    const [result] = await db.query(
-      `SELECT group_name FROM group_list gl JOIN user_group ug ON 
-          gl.group_id = ug.group_id WHERE ug.username = ? 
-          AND gl.group_name IN (?)`,
-      [username, groupname]
-    );
-
-    if (result.length === 0) {
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    return false;
-  }
-};
+const nodemailer = require("nodemailer");
 
 const code = {
   auth01: "A001", // invalid username/password
@@ -29,7 +9,7 @@ const code = {
   payload01: "P001", // missing mandatory keys
   payload02: "P002", // invalid values
   payload03: "P003", // value out of range
-  payload04: "P004", // task state error
+  payload04: "P004", // invalid task state
   url01: "U001", // url dont match
   success01: "S001", // success
   error01: "E001", // general error
@@ -49,16 +29,6 @@ const actions = {
   demoted: "demoted",
   notes: "notes",
   plan: "plan",
-};
-
-// get current date in the format of DD-MM-YYYY
-const getCurrDate = () => {
-  const today = new Date();
-  const day = String(today.getDate()).padStart(2, "0"); // get day and pad with zero
-  const month = String(today.getMonth() + 1).padStart(2, "0"); // get month and pad with zero
-  const year = today.getFullYear();
-
-  return `${day}-${month}-${year}`; // format as DD-MM-YYYY
 };
 
 // get current datetime in format as DD-MM-YYYY HH:MM:SS
@@ -165,34 +135,81 @@ const auditLog = async (
   }
 };
 
-module.exports = {
-  createTask: async (req, res) => {
-    // [M]: task_name (64),
-    // [O]: description (255), plan, notes (65,535)
-    const {
+// username: string
+// groupname: array of group []
+const checkgroup = async (username, groupname) => {
+  try {
+    const [result] = await db.query(
+      `SELECT group_name FROM group_list gl JOIN user_group ug ON 
+            gl.group_id = ug.group_id WHERE ug.username = ? 
+            AND gl.group_name IN (?)`,
+      [username, groupname]
+    );
+
+    if (result.length === 0) {
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
+// email to notify the Project lead
+const emailPL = async (task_id) => {
+  try {
+    // retrieve task name and user email
+    const [result] = await db.query(
+      `SELECT t.task_name, u.email FROM task t JOIN user u ON t.task_creator = u.username  
+        WHERE task_id = ?`,
+      [task_id]
+    );
+
+    // setup email data
+    const recipients = result[0]?.email || "tmstest@example.com";
+    const task_name = result[0]?.task_name;
+    const subject = "Task Completion Notification for Approval";
+    const message = `This is to inform you that the task "${task_name}" has been completed. It is now ready for your review and approval.`;
+
+    transport
+      .sendMail({
+        from: "no-reply@example.com",
+        to: recipients,
+        subject: subject,
+        text: message,
+        html: message,
+      })
+      .then((info) => {
+        console.log("email sent");
+      })
+      .catch((error) => {
+        console.log("email sent error");
+        throw error;
+      });
+  } catch (error) {
+    throw error;
+  }
+};
+
+// update the owner of the task if user performs an action
+const updateTaskOwner = async (username, task_id) => {
+  try {
+    await db.query(`UPDATE task SET task_owner = ? WHERE task_id = ?`, [
       username,
-      password,
-      task_name,
-      task_description,
-      task_notes,
-      task_plan,
-      task_appAcronym,
-    } = req.body;
+      task_id,
+    ]);
+  } catch (error) {
+    throw error;
+  }
+};
 
-    if (!username || !password || !task_name || !task_appAcronym) {
-      return res.status(400).json({ code: code.payload01 }); // missing mandatory keys
-    }
+module.exports = {
+  promoteTask2Done: async (req, res) => {
+    const { username, password, task_id } = req.body;
 
-    if (task_name && task_name.length > 64) {
-      return res.status(400).json({ code: code.payload03 }); // out of range
-    }
-
-    if (task_description && task_description.length > 255) {
-      return res.status(400).json({ code: code.payload03 }); // out of range
-    }
-
-    if (task_notes && task_notes.length > 65535) {
-      return res.status(400).json({ code: code.payload03 }); // out of range
+    if (!username || !password || !task_id) {
+      return res.status(400).json({ code: code.payload01 });
     }
 
     try {
@@ -217,111 +234,81 @@ module.exports = {
         });
       }
 
-      // check if app_acronym exists
-      const [acronym] = await db.execute(
-        `SELECT app_acronym FROM application WHERE app_acronym = ?`,
-        [task_appAcronym]
+      // check if task_id exists
+      const [task] = await db.query(
+        `SELECT task_state, task_app_acronym FROM task WHERE task_id = ?`,
+        [task_id]
       );
 
-      if (acronym.length === 0) {
+      if (task.length === 0) {
+        console.log("INVALID TASK ID");
         return res.status(400).json({
           code: code.payload02, // invalid values
         });
       }
 
+      const app_acronym = task[0].task_app_acronym;
+
       // check if user is permitted to perform actions on a task within an app
       const [group_name] = await db.query(
-        `SELECT app_permit_create FROM application WHERE app_acronym = ?`,
-        [task_appAcronym]
+        `SELECT app_permit_doing FROM application WHERE app_acronym = ?`,
+        [app_acronym]
       );
-
-      const permit_group = group_name[0].app_permit_create;
+      
+      const permit_group = group_name[0].app_permit_doing;
+      console.log(permit_group);
 
       if (permit_group) {
         // check if user is permitted to perform the actions
-        if (!(await checkgroup(req.username, [permit_group]))) {
-          return res.status(400).json({
-            code: code.auth03
+        if (!(await checkgroup(username, [permit_group]))) {
+          return res.status(401).json({
+            code: code.auth03,
           });
         }
       } else {
         // do not let user perform any actions
-        return res.status(400).json({
-            code: code.auth03
+        return res.status(401).json({
+          code: code.auth03,
         });
       }
 
-      // check if plan exists
-      if (task_plan) {
-        const [plan_exist] = await db.execute(
-          "SELECT plan_mvp_name FROM plan WHERE plan_mvp_name = ? AND plan_app_acronym = ?",
-          [task_plan, task_appAcronym]
-        );
-
-        if (plan_exist.length === 0) {
-          return res.status(400).json({
-            code: code.payload02,
-          });
-        }
+      // check if current state is in the "doing" state
+      const task_state = task[0].task_state;
+      if (task_state !== state.doing) {
+        return res.status(400).json({
+          code: code.payload04,
+        });
       }
-      // generate task id
-      // fetch r number from application
-      const [app_rnumber] = await db.query(
-        `SELECT app_rnumber FROM application WHERE app_acronym = ?`,
-        [task_appAcronym]
-      );
-
-      // increment r_number by 1
-      const rnumber = app_rnumber[0].app_rnumber + 1;
-
-      // generate task_id <app_acronym>_<app_rnumber>
-      const task_id = `${task_appAcronym}_${rnumber}`;
 
       await db.query(`START TRANSACTION;`);
 
-      // update app_rnumber
       await db.query(
-        `UPDATE application SET app_rnumber = ? WHERE app_acronym = ?`,
-        [rnumber, task_appAcronym]
+        `UPDATE task SET task_state = ? WHERE task_id = ? AND task_state = ?`,
+        [state.done, task_id, state.doing]
       );
 
-      const createdDate = getCurrDate();
-
-      // create a new task using the newly generated task_id
-      await db.query(
-        `INSERT INTO task
-            (task_id, task_name, task_description, task_plan, 
-            task_app_acronym, task_creator, task_owner, task_createdDate) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `,
-        [
-          task_id,
-          task_name,
-          task_description || null,
-          task_plan || null,
-          task_appAcronym,
-          username,
-          username,
-          createdDate,
-        ]
-      );
+      await updateTaskOwner(username, task_id);
 
       await auditLog(
-        actions.create,
+        actions.promoted,
         username,
         task_id,
-        task_notes,
         null,
-        state.open
+        state.doing,
+        state.done
       );
+
+      // send email to notify Project Lead (creator)
+      await emailPL(task_id);
 
       await db.query(`COMMIT;`);
 
-      res.status(201).json({
+      res.status(200).json({
         code: code.success01,
       });
     } catch (error) {
       await db.query(`ROLLBACK;`);
+      console.log(error);
 
       return res.status(500).json({
         code: code.error01,

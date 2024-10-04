@@ -111,7 +111,7 @@ router.post("/task/createTask2", createTaskController.createTask);
 // retrieve all tasks in a particular state
 router.post("/task/getTasksByState2", getTaskController.getTasksByState);
 // promote task from doing to done state [Dev] (request approval from PL)
-router.patch("/task/promoteTask2Done2", verifyTokenAndAuthorize(), permitTaskAction(), promoteTaskController.promoteTask2Done);
+router.patch("/task/promoteTask2Done2", promoteTaskController.promoteTask2Done);
 
 // default export
 module.exports = router;
