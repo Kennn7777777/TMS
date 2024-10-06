@@ -71,9 +71,9 @@ router.post("/plan/getAllPlans", verifyTokenAndAuthorize(), planController.getAl
 // Task route
 /*---------------------------------------------------------------*/
 // create task [PL] open state by default
-router.post("/task/createTask", verifyTokenAndAuthorize(), permitTaskAction("create"), taskController.createTask);
+router.post("/task/createTask2", verifyTokenAndAuthorize(), permitTaskAction("create"), taskController.createTask);
 // retrieve all tasks in a particular state
-router.post("/task/getTasksByState", verifyTokenAndAuthorize(), taskController.getTasksByState);
+router.post("/task/getTasksByState2", verifyTokenAndAuthorize(), taskController.getTasksByState);
 // retrieve all tasks under a particular application (deprecated)
 router.post("/task/getAllTasks", verifyTokenAndAuthorize(), taskController.getAllTasks);
 // retreive a particular task details by id
@@ -87,7 +87,7 @@ router.patch("/task/promoteTask2TodoList", verifyTokenAndAuthorize(), permitTask
 // promote task from todolist state to doing state [Dev] (Take on)
 router.patch("/task/promoteTask2Doing", verifyTokenAndAuthorize(), permitTaskAction(), taskController.promoteTask2Doing);
 // promote task from doing to done state [Dev] (request approval from PL)
-router.patch("/task/promoteTask2Done", verifyTokenAndAuthorize(), permitTaskAction(), taskController.promoteTask2Done);
+router.patch("/task/promoteTask2Done2", verifyTokenAndAuthorize(), permitTaskAction(), taskController.promoteTask2Done);
 // demote task from doing to todo [Dev] (Give up task)
 router.patch("/task/demoteTask2TodoList", verifyTokenAndAuthorize(), permitTaskAction(), taskController.demoteTask2TodoList);
 // promote task from done to close [PL] (Approve task)
@@ -107,11 +107,11 @@ const promoteTaskController = require("../controllers/promoteTaskController");
 
 // create task [PL] open state by default
 // router.post("/task/createTask2", verifyTokenAndAuthorize(), permitTaskAction("create"), createTaskController.createTask);
-router.post("/task/createTask2", createTaskController.createTask);
+router.post("/task/createTask", createTaskController.createTask);
 // retrieve all tasks in a particular state
-router.post("/task/getTasksByState2", getTaskController.getTasksByState);
+router.post("/task/getTasksByState", getTaskController.getTasksByState);
 // promote task from doing to done state [Dev] (request approval from PL)
-router.patch("/task/promoteTask2Done2", promoteTaskController.promoteTask2Done);
+router.patch("/task/promoteTask2Done", promoteTaskController.promoteTask2Done);
 
 // default export
 module.exports = router;

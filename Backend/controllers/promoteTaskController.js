@@ -2,6 +2,16 @@ const db = require("../config/db");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 
+const transport = nodemailer.createTransport({
+  host: process.env.MAIL_HOST,
+  port: process.env.MAIL_PORT,
+  secure: false,
+  auth: {
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASSWORD,
+  },
+});
+
 const code = {
   auth01: "A001", // invalid username/password
   auth02: "A002", // deactivated
@@ -47,6 +57,7 @@ const getCurrDateTime = () => {
 
 // audit trail will log username, current state, date & timestamp, notes and plan
 const auditLog = async (
+  conn,
   action,
   username,
   task_id,
@@ -111,7 +122,7 @@ const auditLog = async (
 
   try {
     // retrieve existing notes
-    const [existing_notes] = await db.query(
+    const [existing_notes] = await conn.query(
       `SELECT task_notes FROM task WHERE task_id = ?`,
       [task_id]
     );
@@ -126,7 +137,7 @@ const auditLog = async (
     }
 
     // update db with the updated notes
-    await db.query(`UPDATE task SET task_notes = ? WHERE task_id = ?`, [
+    await conn.query(`UPDATE task SET task_notes = ? WHERE task_id = ?`, [
       updated_notes,
       task_id,
     ]);
@@ -137,9 +148,9 @@ const auditLog = async (
 
 // username: string
 // groupname: array of group []
-const checkgroup = async (username, groupname) => {
+const checkgroup = async (username, groupname, conn) => {
   try {
-    const [result] = await db.query(
+    const [result] = await conn.query(
       `SELECT group_name FROM group_list gl JOIN user_group ug ON 
             gl.group_id = ug.group_id WHERE ug.username = ? 
             AND gl.group_name IN (?)`,
@@ -157,10 +168,10 @@ const checkgroup = async (username, groupname) => {
 };
 
 // email to notify the Project lead
-const emailPL = async (task_id) => {
+const emailPL = async (task_id, conn) => {
   try {
     // retrieve task name and user email
-    const [result] = await db.query(
+    const [result] = await conn.query(
       `SELECT t.task_name, u.email FROM task t JOIN user u ON t.task_creator = u.username  
         WHERE task_id = ?`,
       [task_id]
@@ -192,28 +203,23 @@ const emailPL = async (task_id) => {
   }
 };
 
-// update the owner of the task if user performs an action
-const updateTaskOwner = async (username, task_id) => {
-  try {
-    await db.query(`UPDATE task SET task_owner = ? WHERE task_id = ?`, [
-      username,
-      task_id,
-    ]);
-  } catch (error) {
-    throw error;
-  }
-};
-
 module.exports = {
   promoteTask2Done: async (req, res) => {
+    if (req.originalUrl !== "/api/task/promoteTask2Done" ) {
+      return res.status(400).json({ code: code.url01 });
+    }
+
     const { username, password, task_id } = req.body;
 
+    // mandatory fields
     if (!username || !password || !task_id) {
       return res.status(400).json({ code: code.payload01 });
     }
 
+    const conn = await db.getConnection();
+    
     try {
-      const [user] = await db.execute("SELECT * FROM user WHERE username = ?", [
+      const [user] = await conn.execute("SELECT * FROM user WHERE username = ?", [
         username,
       ]);
 
@@ -235,13 +241,12 @@ module.exports = {
       }
 
       // check if task_id exists
-      const [task] = await db.query(
+      const [task] = await conn.query(
         `SELECT task_state, task_app_acronym FROM task WHERE task_id = ?`,
         [task_id]
       );
 
       if (task.length === 0) {
-        console.log("INVALID TASK ID");
         return res.status(400).json({
           code: code.payload02, // invalid values
         });
@@ -250,17 +255,16 @@ module.exports = {
       const app_acronym = task[0].task_app_acronym;
 
       // check if user is permitted to perform actions on a task within an app
-      const [group_name] = await db.query(
+      const [group_name] = await conn.query(
         `SELECT app_permit_doing FROM application WHERE app_acronym = ?`,
         [app_acronym]
       );
       
       const permit_group = group_name[0].app_permit_doing;
-      console.log(permit_group);
 
       if (permit_group) {
         // check if user is permitted to perform the actions
-        if (!(await checkgroup(username, [permit_group]))) {
+        if (!(await checkgroup(username, [permit_group], conn))) {
           return res.status(401).json({
             code: code.auth03,
           });
@@ -280,16 +284,19 @@ module.exports = {
         });
       }
 
-      await db.query(`START TRANSACTION;`);
+      await conn.beginTransaction();
 
-      await db.query(
-        `UPDATE task SET task_state = ? WHERE task_id = ? AND task_state = ?`,
-        [state.done, task_id, state.doing]
+      const [result] = await conn.query(
+        `UPDATE task SET task_state = ?, task_owner = ? WHERE task_id = ? AND task_state = ?`,
+        [state.done, username, task_id, state.doing]
       );
 
-      await updateTaskOwner(username, task_id);
+      // if (result.affectedRows === 0) {
+      //   return res.status(400).json({ code: })
+      // }
 
       await auditLog(
+        conn,
         actions.promoted,
         username,
         task_id,
@@ -299,20 +306,21 @@ module.exports = {
       );
 
       // send email to notify Project Lead (creator)
-      await emailPL(task_id);
+      await emailPL(task_id, conn);
 
-      await db.query(`COMMIT;`);
+      await conn.commit();
 
       res.status(200).json({
         code: code.success01,
       });
     } catch (error) {
-      await db.query(`ROLLBACK;`);
-      console.log(error);
+      await conn.rollback();
 
       return res.status(500).json({
         code: code.error01,
       });
+    } finally {
+      conn.release();
     }
   },
 };

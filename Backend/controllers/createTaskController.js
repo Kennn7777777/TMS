@@ -3,9 +3,9 @@ const bcrypt = require("bcryptjs");
 
 // username: string
 // groupname: array of group []
-const checkgroup = async (username, groupname) => {
+const checkgroup = async (username, groupname, conn) => {
   try {
-    const [result] = await db.query(
+    const [result] = await conn.query(
       `SELECT group_name FROM group_list gl JOIN user_group ug ON 
           gl.group_id = ug.group_id WHERE ug.username = ? 
           AND gl.group_name IN (?)`,
@@ -77,6 +77,7 @@ const getCurrDateTime = () => {
 
 // audit trail will log username, current state, date & timestamp, notes and plan
 const auditLog = async (
+  conn,
   action,
   username,
   task_id,
@@ -141,7 +142,7 @@ const auditLog = async (
 
   try {
     // retrieve existing notes
-    const [existing_notes] = await db.query(
+    const [existing_notes] = await conn.query(
       `SELECT task_notes FROM task WHERE task_id = ?`,
       [task_id]
     );
@@ -156,7 +157,7 @@ const auditLog = async (
     }
 
     // update db with the updated notes
-    await db.query(`UPDATE task SET task_notes = ? WHERE task_id = ?`, [
+    await conn.query(`UPDATE task SET task_notes = ? WHERE task_id = ?`, [
       updated_notes,
       task_id,
     ]);
@@ -167,8 +168,10 @@ const auditLog = async (
 
 module.exports = {
   createTask: async (req, res) => {
-    // [M]: task_name (64),
-    // [O]: description (255), plan, notes (65,535)
+    if (req.originalUrl !== "/api/task/createTask") {
+      return res.status(400).json({ code: code.url01 });
+    }
+
     const {
       username,
       password,
@@ -179,6 +182,7 @@ module.exports = {
       task_appAcronym,
     } = req.body;
 
+    // mandatory fields
     if (!username || !password || !task_name || !task_appAcronym) {
       return res.status(400).json({ code: code.payload01 }); // missing mandatory keys
     }
@@ -195,10 +199,13 @@ module.exports = {
       return res.status(400).json({ code: code.payload03 }); // out of range
     }
 
+    const conn = await db.getConnection();
+
     try {
-      const [user] = await db.execute("SELECT * FROM user WHERE username = ?", [
-        username,
-      ]);
+      const [user] = await conn.execute(
+        "SELECT * FROM user WHERE username = ?",
+        [username]
+      );
 
       if (
         !user ||
@@ -218,7 +225,7 @@ module.exports = {
       }
 
       // check if app_acronym exists
-      const [acronym] = await db.execute(
+      const [acronym] = await conn.execute(
         `SELECT app_acronym FROM application WHERE app_acronym = ?`,
         [task_appAcronym]
       );
@@ -230,7 +237,7 @@ module.exports = {
       }
 
       // check if user is permitted to perform actions on a task within an app
-      const [group_name] = await db.query(
+      const [group_name] = await conn.query(
         `SELECT app_permit_create FROM application WHERE app_acronym = ?`,
         [task_appAcronym]
       );
@@ -239,21 +246,21 @@ module.exports = {
 
       if (permit_group) {
         // check if user is permitted to perform the actions
-        if (!(await checkgroup(req.username, [permit_group]))) {
+        if (!(await checkgroup(username, [permit_group], conn))) {
           return res.status(400).json({
-            code: code.auth03
+            code: code.auth03,
           });
         }
       } else {
         // do not let user perform any actions
         return res.status(400).json({
-            code: code.auth03
+          code: code.auth03,
         });
       }
 
       // check if plan exists
       if (task_plan) {
-        const [plan_exist] = await db.execute(
+        const [plan_exist] = await conn.execute(
           "SELECT plan_mvp_name FROM plan WHERE plan_mvp_name = ? AND plan_app_acronym = ?",
           [task_plan, task_appAcronym]
         );
@@ -266,7 +273,7 @@ module.exports = {
       }
       // generate task id
       // fetch r number from application
-      const [app_rnumber] = await db.query(
+      const [app_rnumber] = await conn.query(
         `SELECT app_rnumber FROM application WHERE app_acronym = ?`,
         [task_appAcronym]
       );
@@ -277,10 +284,10 @@ module.exports = {
       // generate task_id <app_acronym>_<app_rnumber>
       const task_id = `${task_appAcronym}_${rnumber}`;
 
-      await db.query(`START TRANSACTION;`);
+      await conn.beginTransaction();
 
       // update app_rnumber
-      await db.query(
+      await conn.query(
         `UPDATE application SET app_rnumber = ? WHERE app_acronym = ?`,
         [rnumber, task_appAcronym]
       );
@@ -288,7 +295,7 @@ module.exports = {
       const createdDate = getCurrDate();
 
       // create a new task using the newly generated task_id
-      await db.query(
+      await conn.query(
         `INSERT INTO task
             (task_id, task_name, task_description, task_plan, 
             task_app_acronym, task_creator, task_owner, task_createdDate) 
@@ -307,6 +314,7 @@ module.exports = {
       );
 
       await auditLog(
+        conn,
         actions.create,
         username,
         task_id,
@@ -315,17 +323,19 @@ module.exports = {
         state.open
       );
 
-      await db.query(`COMMIT;`);
+      await conn.commit();
 
       res.status(201).json({
         code: code.success01,
       });
     } catch (error) {
-      await db.query(`ROLLBACK;`);
+      await conn.rollback();
 
       return res.status(500).json({
         code: code.error01,
       });
+    } finally {
+      conn.release();
     }
   },
 };

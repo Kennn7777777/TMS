@@ -24,15 +24,19 @@ const code = {
 
 module.exports = {
   getTasksByState: async (req, res) => {
-    // TODO: check for url structure
+    if (req.originalUrl !== "/api/task/getTasksByState" ) {
+      return res.status(400).json({ code: code.url01 });
+    }
 
     const { username, password, task_state, task_appAcronym } = req.body;
 
+    // mandatory fields
     if (!username || !password || !task_state || !task_appAcronym) {
       return res.status(400).json({ code: code.payload01 }); 
     }
 
-    if (task_state && !Object.values(state).includes(task_state)) {
+    // invalid task state value
+    if (!Object.values(state).includes(task_state)) {
       return res.status(400).json({ code: code.payload02 }); 
     }
 
@@ -69,7 +73,7 @@ module.exports = {
         });
       }
 
-      const [result] = await db.query(
+      const [result] = await db.execute(
         `SELECT t.task_id, t.task_name, t.task_description, t.task_owner, p.plan_colour
             FROM task t
             LEFT JOIN plan p ON t.task_plan = p.plan_mvp_name AND t.task_app_acronym = p.plan_app_acronym
@@ -83,7 +87,6 @@ module.exports = {
         code: code.success01,
       });
     } catch (error) {
-      console.log(error);
       return res.status(500).json({
         code: code.error01,
       });
