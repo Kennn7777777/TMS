@@ -13,21 +13,22 @@ const transport = nodemailer.createTransport({
 });
 
 const code = {
-  auth01: "A001", // invalid username/password
-  auth02: "A002", // deactivated
-  auth03: "A003", // insufficient group permission
+  url01: "U001",     // url dont match
+  auth01: "A001",    // invalid username/password
+  auth02: "A002",    // deactivated
+  auth03: "A003",    // insufficient group permission
   payload01: "P001", // missing mandatory keys
-  payload02: "P002", // invalid values
-  payload03: "P003", // value out of range
-  payload04: "P004", // invalid task state
-  url01: "U001", // url dont match
-  success01: "S001", // success
-  error01: "E001", // general error
-};
+  trans01: "T001",   // invalid values
+  trans02: "T002",   // value out of range
+  trans03: "T003",   // task state error
+  trans04: "T004",   // other transaction errors 
+  success01:"S001",  // success
+  error01: "E001"    // internal server error  
+}
 
 const state = {
   open: "open",
-  todo: "todoList",
+  todo: "todo",
   doing: "doing",
   done: "done",
   close: "close",
@@ -205,7 +206,7 @@ const emailPL = async (task_id, conn) => {
 
 module.exports = {
   promoteTask2Done: async (req, res) => {
-    if (req.originalUrl !== "/api/task/promoteTask2Done" ) {
+    if (req.originalUrl !== "/api/task/promoteTask2Done") {
       return res.status(400).json({ code: code.url01 });
     }
 
@@ -216,8 +217,12 @@ module.exports = {
       return res.status(400).json({ code: code.payload01 });
     }
 
+    if (password.length > 10) {
+      return res.status(400).json({ code: code.auth01 });
+    }
+
     const conn = await db.getConnection();
-    
+
     try {
       const [user] = await conn.execute("SELECT * FROM user WHERE username = ?", [
         username,
@@ -248,7 +253,7 @@ module.exports = {
 
       if (task.length === 0) {
         return res.status(400).json({
-          code: code.payload02, // invalid values
+          code: code.trans01, // invalid values
         });
       }
 
@@ -280,7 +285,7 @@ module.exports = {
       const task_state = task[0].task_state;
       if (task_state !== state.doing) {
         return res.status(400).json({
-          code: code.payload04,
+          code: code.trans03,
         });
       }
 
@@ -291,9 +296,9 @@ module.exports = {
         [state.done, username, task_id, state.doing]
       );
 
-      // if (result.affectedRows === 0) {
-      //   return res.status(400).json({ code: })
-      // }
+      if (result.affectedRows === 0) {
+        return res.status(400).json({ code: code.trans04 })
+      }
 
       await auditLog(
         conn,

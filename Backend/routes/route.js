@@ -109,7 +109,7 @@ const promoteTaskController = require("../controllers/promoteTaskController");
 // router.post("/task/createTask2", verifyTokenAndAuthorize(), permitTaskAction("create"), createTaskController.createTask);
 router.post("/task/createTask", createTaskController.createTask);
 // retrieve all tasks in a particular state
-router.post("/task/getTasksByState", getTaskController.getTasksByState);
+router.post("/task/getTaskByState", getTaskController.getTasksByState);
 // promote task from doing to done state [Dev] (request approval from PL)
 router.patch("/task/promoteTask2Done", promoteTaskController.promoteTask2Done);
 

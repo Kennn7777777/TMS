@@ -3,28 +3,30 @@ const bcrypt = require("bcryptjs");
 
 const state = {
   open: "open",
-  todo: "todoList",
+  todo: "todo",
   doing: "doing",
   done: "done",
   close: "close",
 };
 
 const code = {
-    auth01: "A001",    // invalid username/password
-    auth02: "A002",    // deactivated
-    auth03: "A003",    // insufficient group permission
-    payload01: "P001", // missing mandatory keys
-    payload02: "P002", // invalid values
-    payload03: "P003", // value out of range
-    payload04: "P004", // task state error 
-    url01: "U001",     // url dont match
-    success01:"S001",  // success
-    error01: "E001"    // general error  
+  url01: "U001",     // url dont match
+  auth01: "A001",    // invalid username/password
+  auth02: "A002",    // deactivated
+  auth03: "A003",    // insufficient group permission
+  payload01: "P001", // missing mandatory keys
+  trans01: "T001",   // invalid values
+  trans02: "T002",   // value out of range
+  trans03: "T003",   // task state error
+  trans04: "T004",   // other transaction errors 
+  success01:"S001",  // success
+  error01: "E001"    // internal server error  
 }
 
 module.exports = {
   getTasksByState: async (req, res) => {
-    if (req.originalUrl !== "/api/task/getTasksByState" ) {
+    
+    if (req.originalUrl !== "/api/task/getTaskByState" ) {
       return res.status(400).json({ code: code.url01 });
     }
 
@@ -35,9 +37,13 @@ module.exports = {
       return res.status(400).json({ code: code.payload01 }); 
     }
 
+    if (password.length > 10) {
+      return res.status(400).json({ code: code.auth01 });
+    }
+
     // invalid task state value
     if (!Object.values(state).includes(task_state)) {
-      return res.status(400).json({ code: code.payload02 }); 
+      return res.status(400).json({ code: code.trans01 }); 
     }
 
     try {
@@ -69,7 +75,7 @@ module.exports = {
 
       if (acronym.length === 0) {
         return res.status(400).json({
-          code: code.payload02, 
+          code: code.trans01, 
         });
       }
 
